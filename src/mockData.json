@@ -287,5 +287,238 @@
       "description": "Parses configuration files and validates settings",
       "warnings": [15]
     }
+  ],
+  "nodes": [
+    {
+      "id": "open_db",
+      "name": "open_db",
+      "in_degree": 2,
+      "out_degree": 4,
+      "degree": 6
+    },
+    {
+      "id": "init_cache",
+      "name": "init_cache",
+      "in_degree": 1,
+      "out_degree": 2,
+      "degree": 3
+    },
+    {
+      "id": "parse_file",
+      "name": "parse_file",
+      "in_degree": 3,
+      "out_degree": 5,
+      "degree": 8
+    },
+    {
+      "id": "process_data",
+      "name": "process_data",
+      "in_degree": 4,
+      "out_degree": 3,
+      "degree": 7
+    },
+    {
+      "id": "validate_input",
+      "name": "validate_input",
+      "in_degree": 2,
+      "out_degree": 1,
+      "degree": 3
+    },
+    {
+      "id": "calculate_score",
+      "name": "calculate_score",
+      "in_degree": 2,
+      "out_degree": 2,
+      "degree": 4
+    },
+    {
+      "id": "format_date",
+      "name": "format_date",
+      "in_degree": 3,
+      "out_degree": 0,
+      "degree": 3
+    },
+    {
+      "id": "process_payment",
+      "name": "process_payment",
+      "in_degree": 2,
+      "out_degree": 3,
+      "degree": 5
+    },
+    {
+      "id": "generate_report",
+      "name": "generate_report",
+      "in_degree": 3,
+      "out_degree": 1,
+      "degree": 4
+    },
+    {
+      "id": "search_recursive",
+      "name": "search_recursive",
+      "in_degree": 1,
+      "out_degree": 2,
+      "degree": 3
+    },
+    {
+      "id": "debug_log",
+      "name": "debug_log",
+      "in_degree": 5,
+      "out_degree": 0,
+      "degree": 5
+    },
+    {
+      "id": "cleanup_resources",
+      "name": "cleanup_resources",
+      "in_degree": 2,
+      "out_degree": 0,
+      "degree": 2
+    },
+    {
+      "id": "create_user",
+      "name": "create_user",
+      "in_degree": 1,
+      "out_degree": 3,
+      "degree": 4
+    },
+    {
+      "id": "open_file",
+      "name": "open_file",
+      "in_degree": 2,
+      "out_degree": 2,
+      "degree": 4
+    },
+    {
+      "id": "parse_config",
+      "name": "parse_config",
+      "in_degree": 1,
+      "out_degree": 2,
+      "degree": 3
+    }
+  ],
+  "edges": [
+    {
+      "source": "open_db",
+      "target": "init_cache"
+    },
+    {
+      "source": "open_db",
+      "target": "debug_log"
+    },
+    {
+      "source": "open_db",
+      "target": "cleanup_resources"
+    },
+    {
+      "source": "open_db",
+      "target": "open_file"
+    },
+    {
+      "source": "init_cache",
+      "target": "debug_log"
+    },
+    {
+      "source": "init_cache",
+      "target": "cleanup_resources"
+    },
+    {
+      "source": "parse_file",
+      "target": "validate_input"
+    },
+    {
+      "source": "parse_file",
+      "target": "process_data"
+    },
+    {
+      "source": "parse_file",
+      "target": "debug_log"
+    },
+    {
+      "source": "parse_file",
+      "target": "format_date"
+    },
+    {
+      "source": "parse_file",
+      "target": "open_file"
+    },
+    {
+      "source": "process_data",
+      "target": "calculate_score"
+    },
+    {
+      "source": "process_data",
+      "target": "debug_log"
+    },
+    {
+      "source": "process_data",
+      "target": "format_date"
+    },
+    {
+      "source": "validate_input",
+      "target": "debug_log"
+    },
+    {
+      "source": "calculate_score",
+      "target": "generate_report"
+    },
+    {
+      "source": "calculate_score",
+      "target": "debug_log"
+    },
+    {
+      "source": "format_date",
+      "target": "debug_log"
+    },
+    {
+      "source": "process_payment",
+      "target": "validate_input"
+    },
+    {
+      "source": "process_payment",
+      "target": "debug_log"
+    },
+    {
+      "source": "process_payment",
+      "target": "cleanup_resources"
+    },
+    {
+      "source": "generate_report",
+      "target": "debug_log"
+    },
+    {
+      "source": "search_recursive",
+      "target": "debug_log"
+    },
+    {
+      "source": "search_recursive",
+      "target": "process_data"
+    },
+    {
+      "source": "create_user",
+      "target": "validate_input"
+    },
+    {
+      "source": "create_user",
+      "target": "debug_log"
+    },
+    {
+      "source": "create_user",
+      "target": "cleanup_resources"
+    },
+    {
+      "source": "open_file",
+      "target": "debug_log"
+    },
+    {
+      "source": "open_file",
+      "target": "cleanup_resources"
+    },
+    {
+      "source": "parse_config",
+      "target": "parse_file"
+    },
+    {
+      "source": "parse_config",
+      "target": "debug_log"
+    }
   ]
 }
