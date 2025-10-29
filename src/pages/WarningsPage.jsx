@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { mockWarnings, mockFunctions } from '../mockData';
+import CallGraph from '../components/CallGraph';
 
 const WarningsPage = () => {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ const WarningsPage = () => {
   const [selectedWarnings, setSelectedWarnings] = useState([]);
   const [userTask, setUserTask] = useState('exploring');
   const [visibleWarningsCount, setVisibleWarningsCount] = useState(10);
+  const [selectedGraphNode, setSelectedGraphNode] = useState(null);
 
   // Helper function to get function details for a warning
   const getFunctionDetails = (functionName) => {
@@ -100,6 +102,16 @@ const WarningsPage = () => {
   // Load more warnings 함수
   const loadMoreWarnings = () => {
     setVisibleWarningsCount(prev => prev + 10);
+  };
+
+  // Handle graph node click
+  const handleNodeClick = (node) => {
+    setSelectedGraphNode(node);
+    // Find function by name and navigate to it
+    const func = mockFunctions.find(f => f.name === node.name);
+    if (func) {
+      navigate(`/function/${func.id}`);
+    }
   };
 
   const getSeverityColor = (severity) => {
@@ -269,28 +281,19 @@ const WarningsPage = () => {
           </div>
         </div>
 
-        {/* Center Panel - Call Graph Placeholder */}
-        <div className="flex-1 bg-white p-6 overflow-y-auto">
-          <div className="h-full flex items-center justify-center">
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg border-2 border-gray-200 w-full h-full flex items-center justify-center">
-              <div className="text-center">
-                <div className="text-6xl mb-4">📊</div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">Call Graph Visualization</h2>
-                <p className="text-gray-600 mb-6">
-                  Interactive call graph will be displayed here
-                </p>
-                <div className="bg-white rounded-lg p-6 shadow-lg max-w-md mx-auto">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Graph Features</h3>
-                  <ul className="text-sm text-gray-600 space-y-2 text-left">
-                    <li>• Interactive node exploration</li>
-                    <li>• Function call relationships</li>
-                    <li>• Complexity visualization</li>
-                    <li>• Warning highlighting</li>
-                    <li>• Zoom and pan controls</li>
-                  </ul>
-                </div>
-              </div>
+        {/* Center Panel - Call Graph */}
+        <div className="flex-1 bg-white p-6 overflow-hidden">
+          <div className="h-full">
+            <div className="mb-4">
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Call Graph Visualization</h2>
+              <p className="text-sm text-gray-600">
+                Interactive visualization of function call relationships. Click nodes to analyze functions.
+              </p>
             </div>
+            <CallGraph 
+              selectedFunction={selectedGraphNode?.name}
+              onNodeClick={handleNodeClick}
+            />
           </div>
         </div>
 

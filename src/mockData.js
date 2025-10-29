@@ -8,3 +8,8 @@ export const mockFunctions = mockData.functions.map(func => ({
     mockWarnings.find(warning => warning.id === warningId)
   ).filter(Boolean)
 }));
+
+// Export nodes and edges for call graph
+export const mockNodes = mockData.nodes;
+export const mockEdges = mockData.edges;
+export { mockData };
