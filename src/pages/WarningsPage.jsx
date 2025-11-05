@@ -1,656 +1,579 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { mockWarnings, mockFunctions } from '../mockData';
+import { mockWarnings, mockFunctions, mockNodes } from '../mockData';
 import CallGraph from '../components/CallGraph';
+
+// Step 1: Exploration Criteria Presets
+const EXPLORATION_CRITERIA = [
+  { 
+    id: 'complexity', 
+    label: 'Functions with High Complexity', 
+    description: 'Focus on complex functions that need refactoring',
+    icon: '📊'
+  },
+  { 
+    id: 'high-severity', 
+    label: 'Functions with Many High-Severity Warnings', 
+    description: 'Identify critical issues that need immediate attention',
+    icon: '🔴'
+  },
+  { 
+    id: 'easy-fix', 
+    label: 'Functions with Many Easy-to-Fix Warnings', 
+    description: 'Quick wins for improving code quality',
+    icon: '⚡'
+  }
+];
+
+// Step 2: Dynamic Filter Configuration based on selected criteria
+const getFilterConfig = (criteriaId) => {
+  const baseConfig = {
+    complexity: [
+      {
+        key: 'minComplexity',
+        label: 'Minimum Complexity Score',
+        type: 'slider',
+        min: 5,
+        max: 20,
+        step: 1,
+        defaultValue: 10
+      },
+      {
+        key: 'warningSeverity',
+        label: 'Warning Severity Focus',
+        type: 'select',
+        options: [
+          { value: 'any', label: 'Any Severity' },
+          { value: 'High', label: 'High Severity Only' },
+          { value: 'Medium', label: 'Medium+ Severity' },
+          { value: 'Low', label: 'Low+ Severity' }
+        ],
+        defaultValue: 'any'
+      },
+      {
+        key: 'minWarningCount',
+        label: 'Minimum Warning Count',
+        type: 'slider',
+        min: 0,
+        max: 10,
+        step: 1,
+        defaultValue: 1
+      },
+      {
+        key: 'minDegree',
+        label: 'Minimum Connection Degree',
+        type: 'slider',
+        min: 0,
+        max: 10,
+        step: 1,
+        defaultValue: 2
+      }
+    ],
+    'high-severity': [
+      {
+        key: 'minHighSeverityCount',
+        label: 'Minimum High-Severity Warnings',
+        type: 'slider',
+        min: 1,
+        max: 5,
+        step: 1,
+        defaultValue: 2
+      },
+      {
+        key: 'includeMediumSeverity',
+        label: 'Include Medium Severity',
+        type: 'toggle',
+        defaultValue: false
+      },
+      {
+        key: 'minComplexity',
+        label: 'Minimum Complexity',
+        type: 'slider',
+        min: 0,
+        max: 15,
+        step: 1,
+        defaultValue: 5
+      },
+      {
+        key: 'minTotalWarnings',
+        label: 'Minimum Total Warnings',
+        type: 'slider',
+        min: 0,
+        max: 10,
+        step: 1,
+        defaultValue: 3
+      }
+    ],
+    'easy-fix': [
+      {
+        key: 'minEasyFixCount',
+        label: 'Minimum Easy-to-Fix Warnings',
+        type: 'slider',
+        min: 1,
+        max: 8,
+        step: 1,
+        defaultValue: 3
+      },
+      {
+        key: 'maxComplexity',
+        label: 'Maximum Complexity',
+        type: 'slider',
+        min: 5,
+        max: 20,
+        step: 1,
+        defaultValue: 12
+      },
+      {
+        key: 'easyFixRatio',
+        label: 'Easy Fix Ratio',
+        type: 'slider',
+        min: 0.1,
+        max: 1.0,
+        step: 0.1,
+        defaultValue: 0.5
+      },
+      {
+        key: 'minTotalWarnings',
+        label: 'Minimum Total Warnings',
+        type: 'slider',
+        min: 0,
+        max: 10,
+        step: 1,
+        defaultValue: 2
+      }
+    ]
+  };
+
+  return baseConfig[criteriaId] || [];
+};
 
 const WarningsPage = () => {
   const navigate = useNavigate();
-  const [selectedTool, setSelectedTool] = useState('');
-  const [selectedSeverity, setSelectedSeverity] = useState('');
-  const [appliedTool, setAppliedTool] = useState('');
-  const [appliedSeverity, setAppliedSeverity] = useState('');
-  const [hoveredWarning, setHoveredWarning] = useState(null);
-  const [selectedWarnings, setSelectedWarnings] = useState([]);
-  const [userTask, setUserTask] = useState('exploring');
-  const [visibleWarningsCount, setVisibleWarningsCount] = useState(10);
-  const [selectedGraphNode, setSelectedGraphNode] = useState(null);
-  const [isFilterPanelVisible, setIsFilterPanelVisible] = useState(true);
+  
+  // Step 1 State: Selected exploration criteria
+  const [selectedCriteria, setSelectedCriteria] = useState('complexity');
+  
+  // Step 2 State: Dynamic filters based on criteria
+  const [filters, setFilters] = useState({});
+  
+  // Step 3 State: Selected function for graph highlighting
+  const [selectedFunction, setSelectedFunction] = useState(null);
+  
+  const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(true);
 
-  // Calculate quality metrics from mock data
-  const qualityMetrics = useMemo(() => {
-    const totalWarnings = mockWarnings.length;
-    const highSeverityWarnings = mockWarnings.filter(w => w.severity === 'High').length;
-    const mediumSeverityWarnings = mockWarnings.filter(w => w.severity === 'Medium').length;
-    const lowSeverityWarnings = mockWarnings.filter(w => w.severity === 'Low').length;
-    
-    const complexities = mockFunctions.map(f => f.complexity || 0);
-    const avgComplexity = complexities.reduce((a, b) => a + b, 0) / complexities.length;
-    const maxComplexity = Math.max(...complexities);
-    
-    // Calculate overall score (0-100)
-    const complexityScore = Math.max(0, 100 - (avgComplexity * 5));
-    const severityScore = Math.max(0, 100 - (highSeverityWarnings * 10 + mediumSeverityWarnings * 5));
-    const overallScore = Math.round((complexityScore + severityScore) / 2);
+  // Calculate function metrics for filtering and display
+  const functionMetrics = useMemo(() => {
+    const degreeMap = mockNodes.reduce((acc, node) => {
+      acc[node.id] = node.degree || 0;
+      return acc;
+    }, {});
 
-    return {
-      overallScore,
-      avgComplexity: avgComplexity.toFixed(1),
-      maxComplexity,
-      complexityScore: Math.max(0, 100 - (avgComplexity * 8)),
-      securityIssues: mockWarnings.filter(w => w.type.includes('security') || w.type.includes('Security')).length,
-      maintainabilityIndex: Math.max(0, 100 - (avgComplexity * 3 + highSeverityWarnings * 2)),
-      testCoverage: Math.round(Math.random() * 30 + 60), // Mock data
-      issueDistribution: [
-        { type: 'High', count: highSeverityWarnings, percentage: Math.round((highSeverityWarnings / totalWarnings) * 100) },
-        { type: 'Medium', count: mediumSeverityWarnings, percentage: Math.round((mediumSeverityWarnings / totalWarnings) * 100) },
-        { type: 'Low', count: lowSeverityWarnings, percentage: Math.round((lowSeverityWarnings / totalWarnings) * 100) }
-      ],
-      totalWarnings
-    };
-  }, [mockWarnings, mockFunctions]);
+    return mockFunctions.map(func => {
+      const functionWarnings = mockWarnings.filter(w => w.function === func.name);
+      
+      const severityCounts = functionWarnings.reduce((acc, warning) => {
+        acc[warning.severity] = (acc[warning.severity] || 0) + 1;
+        return acc;
+      }, { High: 0, Medium: 0, Low: 0 });
 
-  // Helper function to get function details for a warning
-  const getFunctionDetails = (functionName) => {
-    const func = mockFunctions.find(f => f.name === functionName);
-    return {
-      complexity: func?.complexity || 0,
-      callCount: func?.callCount || 0,
-      functionId: func?.id || 1 // Fallback to 1 if not found
-    };
-  };
+      const totalWarnings = functionWarnings.length;
+      const easyFixCount = severityCounts.Low + Math.floor(severityCounts.Medium * 0.3);
+      const easyFixRatio = totalWarnings > 0 ? easyFixCount / totalWarnings : 0;
 
-  // Helper function to get function ID from function name
-  const getFunctionId = (functionName) => {
-    const func = mockFunctions.find(f => f.name === functionName);
-    return func?.id || 1; // Fallback to 1 if not found
-  };
+      return {
+        ...func,
+        functionWarnings,
+        totalWarnings,
+        severityCounts,
+        easyFixCount,
+        easyFixRatio,
+        degree: degreeMap[func.name] || 0,
+        dominantSeverity: severityCounts.High > 0 ? 'High' : 
+                         severityCounts.Medium > 0 ? 'Medium' : 
+                         severityCounts.Low > 0 ? 'Low' : 'None'
+      };
+    });
+  }, [mockWarnings, mockFunctions, mockNodes]);
 
-  // 필터링 및 정렬된 경고 데이터
-  const filteredAndSortedWarnings = useMemo(() => {
-    let filtered = [...mockWarnings];
+  // Initialize filters when criteria changes
+  useMemo(() => {
+    const config = getFilterConfig(selectedCriteria);
+    const initialFilters = {};
+    config.forEach(filter => {
+      initialFilters[filter.key] = filter.defaultValue;
+    });
+    setFilters(initialFilters);
+  }, [selectedCriteria]);
 
-    // 적용된 Tool 필터만 사용
-    if (appliedTool) {
-      filtered = filtered.filter(warning => warning.tool === appliedTool);
-    }
+  // Step 3: Filter functions based on selected criteria and filters
+  const filteredFunctions = useMemo(() => {
+    let results = [...functionMetrics];
 
-    // 적용된 Severity 필터만 사용
-    if (appliedSeverity) {
-      filtered = filtered.filter(warning => warning.severity === appliedSeverity);
-    }
-
-    // 필터가 적용된 경우에만 정렬
-    if (appliedTool || appliedSeverity) {
-      filtered.sort((a, b) => {
-        // 1. 적용된 Tool이 있으면 해당 Tool을 우선
-        if (appliedTool) {
-          const aToolMatch = a.tool === appliedTool ? 1 : 0;
-          const bToolMatch = b.tool === appliedTool ? 1 : 0;
-          if (aToolMatch !== bToolMatch) {
-            return bToolMatch - aToolMatch;
-          }
-        }
-
-        // 2. 적용된 Severity가 있으면 해당 Severity를 우선
-        if (appliedSeverity) {
-          const aSeverityMatch = a.severity === appliedSeverity ? 1 : 0;
-          const bSeverityMatch = b.severity === appliedSeverity ? 1 : 0;
-          if (aSeverityMatch !== bSeverityMatch) {
-            return bSeverityMatch - aSeverityMatch;
-          }
-        }
-
-        // 3. Severity 우선순위 (High > Medium > Low)
-        const severityOrder = { 'High': 3, 'Medium': 2, 'Low': 1 };
-        const aSeverityOrder = severityOrder[a.severity] || 0;
-        const bSeverityOrder = severityOrder[b.severity] || 0;
+    switch (selectedCriteria) {
+      case 'complexity':
+        // Filter by complexity criteria
+        results = results.filter(func => 
+          func.complexity >= Number(filters.minComplexity || 5)
+        );
         
-        if (aSeverityOrder !== bSeverityOrder) {
-          return bSeverityOrder - aSeverityOrder;
+        if (filters.warningSeverity && filters.warningSeverity !== 'any') {
+          if (filters.warningSeverity === 'High') {
+            results = results.filter(func => func.severityCounts.High > 0);
+          } else if (filters.warningSeverity === 'Medium') {
+            results = results.filter(func => func.severityCounts.High > 0 || func.severityCounts.Medium > 0);
+          } else if (filters.warningSeverity === 'Low') {
+            results = results.filter(func => func.totalWarnings > 0);
+          }
         }
+        
+        if (filters.minWarningCount) {
+          results = results.filter(func => func.totalWarnings >= Number(filters.minWarningCount));
+        }
+        
+        if (filters.minDegree) {
+          results = results.filter(func => func.degree >= Number(filters.minDegree));
+        }
+        
+        // Sort by complexity (highest first)
+        results.sort((a, b) => b.complexity - a.complexity);
+        break;
 
-        // 4. Tool 알파벳 순
-        return a.tool.localeCompare(b.tool);
-      });
+      case 'high-severity':
+        // Filter by high-severity criteria
+        results = results.filter(func => 
+          func.severityCounts.High >= Number(filters.minHighSeverityCount || 1)
+        );
+        
+        if (!filters.includeMediumSeverity) {
+          results = results.filter(func => func.severityCounts.Medium === 0);
+        }
+        
+        if (filters.minComplexity) {
+          results = results.filter(func => func.complexity >= Number(filters.minComplexity));
+        }
+        
+        if (filters.minTotalWarnings) {
+          results = results.filter(func => func.totalWarnings >= Number(filters.minTotalWarnings));
+        }
+        
+        // Sort by high severity count (highest first)
+        results.sort((a, b) => b.severityCounts.High - a.severityCounts.High);
+        break;
+
+      case 'easy-fix':
+        // Filter by easy-fix criteria
+        results = results.filter(func => 
+          func.easyFixCount >= Number(filters.minEasyFixCount || 2)
+        );
+        
+        if (filters.maxComplexity) {
+          results = results.filter(func => func.complexity <= Number(filters.maxComplexity));
+        }
+        
+        if (filters.easyFixRatio) {
+          results = results.filter(func => func.easyFixRatio >= Number(filters.easyFixRatio));
+        }
+        
+        if (filters.minTotalWarnings) {
+          results = results.filter(func => func.totalWarnings >= Number(filters.minTotalWarnings));
+        }
+        
+        // Sort by easy fix count (highest first)
+        results.sort((a, b) => b.easyFixCount - a.easyFixCount);
+        break;
     }
 
-    return filtered;
-  }, [appliedTool, appliedSeverity]);
+    return results;
+  }, [functionMetrics, selectedCriteria, filters]);
 
-  // Apply Filters 함수
-  const applyFilters = () => {
-    setAppliedTool(selectedTool);
-    setAppliedSeverity(selectedSeverity);
+  // Event Handlers
+  const handleCriteriaSelect = (criteriaId) => {
+    setSelectedCriteria(criteriaId);
+    setSelectedFunction(null); // Reset selection when criteria changes
   };
 
-  // Reset Filters 함수
-  const resetFilters = () => {
-    setSelectedTool('');
-    setSelectedSeverity('');
-    setAppliedTool('');
-    setAppliedSeverity('');
-    setSelectedWarnings([]);
-    setVisibleWarningsCount(10);
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
   };
 
-  // Load more warnings 함수
-  const loadMoreWarnings = () => {
-    setVisibleWarningsCount(prev => prev + 10);
+  const handleFunctionSelect = (functionName) => {
+    setSelectedFunction(prev => prev === functionName ? null : functionName);
   };
 
-  // Handle graph node click
   const handleNodeClick = (node) => {
-    setSelectedGraphNode(node);
-    // Find function by name and navigate to it
-    const func = mockFunctions.find(f => f.name === node.name);
-    if (func) {
-      navigate(`/function/${func.id}`);
+    if (node) {
+      setSelectedFunction(prev => prev === node.id ? null : node.id);
     }
   };
 
-  const getSeverityColor = (severity) => {
-    switch (severity) {
-      case 'High':
-        return 'bg-red-50 border-red-200 text-red-800 hover:border-red-300';
-      case 'Medium':
-        return 'bg-yellow-50 border-yellow-200 text-yellow-800 hover:border-yellow-300';
-      case 'Low':
-        return 'bg-blue-50 border-blue-200 text-blue-800 hover:border-blue-300';
+  // Render filter controls based on type
+  const renderFilterControl = (filterConfig) => {
+    const value = filters[filterConfig.key] ?? filterConfig.defaultValue;
+
+    switch (filterConfig.type) {
+      case 'slider':
+        return (
+          <div key={filterConfig.key} className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              {filterConfig.label}: <span className="text-primary font-semibold">{value}</span>
+            </label>
+            <input
+              type="range"
+              min={filterConfig.min}
+              max={filterConfig.max}
+              step={filterConfig.step}
+              value={value}
+              onChange={(e) => handleFilterChange(filterConfig.key, e.target.value)}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            />
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>{filterConfig.min}</span>
+              <span>{filterConfig.max}</span>
+            </div>
+          </div>
+        );
+
+      case 'select':
+        return (
+          <div key={filterConfig.key} className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
+              {filterConfig.label}
+            </label>
+            <select
+              value={value}
+              onChange={(e) => handleFilterChange(filterConfig.key, e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
+            >
+              {filterConfig.options.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        );
+
+      case 'toggle':
+        return (
+          <div key={filterConfig.key} className="flex items-center justify-between">
+            <label className="text-sm font-medium text-gray-700">
+              {filterConfig.label}
+            </label>
+            <button
+              onClick={() => handleFilterChange(filterConfig.key, !value)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                value ? 'bg-primary' : 'bg-gray-200'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                  value ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+        );
+
       default:
-        return 'bg-gray-50 border-gray-200 text-gray-800 hover:border-gray-300';
+        return null;
     }
-  };
-
-  const getSeverityDot = (severity) => {
-    switch (severity) {
-      case 'High':
-        return 'bg-red-500';
-      case 'Medium':
-        return 'bg-yellow-500';
-      case 'Low':
-        return 'bg-blue-500';
-      default:
-        return 'bg-gray-500';
-    }
-  };
-
-  const getScoreColor = (score) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  const getScoreBgColor = (score) => {
-    if (score >= 80) return '#10b981';
-    if (score >= 60) return '#f59e0b';
-    return '#ef4444';
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-73px)]">
-      {/* Task-based Navigation Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-3">
+    <div className="flex flex-col h-[calc(100vh-73px)] bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-6">
-            <span className="text-sm font-medium text-gray-500">Current Task:</span>
-            <div className="flex space-x-2">
-              {['Exploring', 'Comparing', 'Debugging'].map(task => (
-                <button
-                  key={task}
-                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                    userTask.toLowerCase() === task.toLowerCase()
-                      ? 'bg-primary text-white'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                  onClick={() => setUserTask(task.toLowerCase())}
-                >
-                  {task}
-                </button>
-              ))}
-            </div>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Function Explorer</h1>
+            <p className="text-sm text-gray-600">
+              Explore functions based on different quality criteria and analyze their impact
+            </p>
           </div>
-          {userTask === 'comparing' && selectedWarnings.length > 0 && (
-            <button 
-              onClick={() => navigate(`/compare?ids=${selectedWarnings.join(',')}`)}
-              className="bg-primary hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium"
-            >
-              Compare {selectedWarnings.length} Functions
-            </button>
+          {selectedFunction && (
+            <div className="text-sm text-gray-600">
+              Selected: <span className="font-semibold text-primary">{selectedFunction}</span>
+            </div>
           )}
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Filter Panel Toggle Button */}
-        <button
-          onClick={() => setIsFilterPanelVisible(!isFilterPanelVisible)}
-          className={`fixed top-1/2 transform -translate-y-1/2 z-10 bg-primary text-white p-2 rounded-r-lg shadow-lg hover:bg-blue-700 transition-all ${
-            isFilterPanelVisible ? 'left-80' : 'left-0'
-          }`}
-        >
-          {isFilterPanelVisible ? '◀' : '▶'}
-        </button>
-
-        {/* Left Panel - Filters */}
-        {isFilterPanelVisible && (
-          <div className="w-80 bg-white border-r border-gray-200 p-6 overflow-y-auto">
-            <div className="space-y-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Analysis Controls</h2>
-              
-              {/* Task Guidance */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="text-sm font-medium text-blue-900 mb-2">Current Task</h3>
-                <p className="text-xs text-blue-700">
-                  {userTask === 'exploring' && 'Explore warnings and understand code quality issues'}
-                  {userTask === 'comparing' && 'Compare functions to identify patterns and hotspots'}
-                  {userTask === 'debugging' && 'Focus on specific issues and their root causes'}
-                </p>
-              </div>
-
-              {/* Tool Filter */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Analysis Tool
-                </label>
-                <select 
-                  value={selectedTool}
-                  onChange={(e) => setSelectedTool(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
-                >
-                  <option value="">All Tools</option>
-                  <option value="Infer">Infer</option>
-                  <option value="Clang">Clang</option>
-                  <option value="Lizard">Lizard</option>
-                  <option value="ESLint">ESLint</option>
-                  <option value="JavaScript">JavaScript</option>
-                  <option value="SonarQube">SonarQube</option>
-                  <option value="PMD">PMD</option>
-                  <option value="SpotBugs">SpotBugs</option>
-                  <option value="Checkstyle">Checkstyle</option>
-                  <option value="FindBugs">FindBugs</option>
-                  <option value="Clang Static Analyzer">Clang Static Analyzer</option>
-                </select>
-              </div>
-
-              {/* Severity Filter */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Issue Severity
-                </label>
-                <select 
-                  value={selectedSeverity}
-                  onChange={(e) => setSelectedSeverity(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
-                >
-                  <option value="">All Severities</option>
-                  <option value="High">High - Critical Issues</option>
-                  <option value="Medium">Medium - Important Issues</option>
-                  <option value="Low">Low - Minor Issues</option>
-                </select>
-              </div>
-
-              {/* Complexity Filter */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Complexity Level
-                </label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors">
-                  <option value="">Any Complexity</option>
-                  <option value="high">High (&gt;15)</option>
-                  <option value="medium">Medium (10-15)</option>
-                  <option value="low">Low (&lt;10)</option>
-                </select>
-              </div>
-
-              {/* Apply Filters Button */}
-              <button 
-                onClick={applyFilters}
-                className="w-full bg-primary hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors duration-200 shadow-sm hover:shadow-md"
-              >
-                Apply Filters
-              </button>
-
-              {/* Reset Filters Button */}
-              <button 
-                onClick={resetFilters}
-                className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-4 rounded-lg font-medium transition-colors duration-200 shadow-sm hover:shadow-md"
-              >
-                Reset All Filters
-              </button>
-
-              {/* Selection Summary */}
-              {selectedWarnings.length > 0 && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-green-900 mb-2">
-                    Selection Ready
-                  </h3>
-                  <p className="text-xs text-green-700">
-                    {selectedWarnings.length} function{selectedWarnings.length > 1 ? 's' : ''} selected for comparison
-                  </p>
-                  <button
-                    onClick={() => setSelectedWarnings([])}
-                    className="w-full mt-2 bg-green-200 hover:bg-green-300 text-green-800 py-1 px-3 rounded text-sm"
-                  >
-                    Clear Selection
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Main Content Area - Split between Dashboard and Graph */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* Left Side - Quality Dashboard & Warning List */}
-          <div className="w-[30%] flex flex-col border-r border-gray-200">
-            {/* Quality Metrics Dashboard */}
-            <div className="bg-white p-6 border-b border-gray-200 overflow-y-auto flex-shrink-0">
-              <div className="space-y-6">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900 mb-2">Code Quality Dashboard</h1>
-                  <p className="text-gray-600 text-sm">
-                    Comprehensive overview of code health metrics and quality indicators
-                  </p>
-                </div>
-
-                {/* Overall Quality Score */}
-                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">Code Health Score</h3>
-                    <div className="text-sm text-gray-500">Last analyzed: Today</div>
-                  </div>
-                  <div className="flex items-center justify-center">
-                    <div className="relative">
-                      {/* Circular Progress Gauge */}
-                      <div 
-                        className="w-32 h-32 rounded-full border-8 border-gray-100 flex items-center justify-center"
-                        style={{
-                          background: `conic-gradient(${getScoreBgColor(qualityMetrics.overallScore)} ${qualityMetrics.overallScore * 3.6}deg, #e5e7eb 0deg)`
-                        }}
-                      >
-                        <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-sm">
-                          <span className={`text-2xl font-bold ${getScoreColor(qualityMetrics.overallScore)}`}>
-                            {qualityMetrics.overallScore}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-center mt-4">
-                    <div className="text-sm text-gray-600">Overall Quality</div>
-                    <div className={`text-sm font-medium ${getScoreColor(qualityMetrics.overallScore)}`}>
-                      {qualityMetrics.overallScore >= 80 ? 'Excellent' : 
-                       qualityMetrics.overallScore >= 60 ? 'Good' : 'Needs Improvement'}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Key Metrics Grid */}
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Complexity Gauge */}
-                  <div className="bg-white rounded-lg border border-gray-200 p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700">Complexity</span>
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        qualityMetrics.avgComplexity > 15 ? 'bg-red-100 text-red-800' :
-                        qualityMetrics.avgComplexity > 10 ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-green-100 text-green-800'
-                      }`}>
-                        {qualityMetrics.avgComplexity > 15 ? 'High' : qualityMetrics.avgComplexity > 10 ? 'Medium' : 'Low'}
-                      </span>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-xs">
-                        <span>Avg: {qualityMetrics.avgComplexity}</span>
-                        <span>Max: {qualityMetrics.maxComplexity}</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className={`h-2 rounded-full ${
-                            qualityMetrics.avgComplexity > 15 ? 'bg-red-500' :
-                            qualityMetrics.avgComplexity > 10 ? 'bg-yellow-500' :
-                            'bg-green-500'
-                          }`}
-                          style={{width: `${Math.min(100, qualityMetrics.complexityScore)}%`}}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Security Issues */}
-                  <div className="bg-white rounded-lg border border-gray-200 p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700">Security</span>
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        qualityMetrics.securityIssues > 5 ? 'bg-red-100 text-red-800' :
-                        qualityMetrics.securityIssues > 2 ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-green-100 text-green-800'
-                      }`}>
-                        {qualityMetrics.securityIssues > 5 ? 'Critical' : qualityMetrics.securityIssues > 2 ? 'Medium' : 'Good'}
-                      </span>
-                    </div>
-                    <div className="text-2xl font-bold text-gray-900">{qualityMetrics.securityIssues}</div>
-                    <div className="text-xs text-gray-500">Critical vulnerabilities</div>
-                  </div>
-
-                  {/* Maintainability */}
-                  <div className="bg-white rounded-lg border border-gray-200 p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700">Maintainability</span>
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        qualityMetrics.maintainabilityIndex > 80 ? 'bg-green-100 text-green-800' :
-                        qualityMetrics.maintainabilityIndex > 60 ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {qualityMetrics.maintainabilityIndex > 80 ? 'Good' : qualityMetrics.maintainabilityIndex > 60 ? 'Fair' : 'Poor'}
-                      </span>
-                    </div>
-                    <div className="text-2xl font-bold text-gray-900">{qualityMetrics.maintainabilityIndex}</div>
-                    <div className="text-xs text-gray-500">Index score</div>
-                  </div>
-
-                  {/* Test Coverage */}
-                  <div className="bg-white rounded-lg border border-gray-200 p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700">Test Coverage</span>
-                      <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">Target: 80%</span>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className={`h-2 rounded-full ${
-                            qualityMetrics.testCoverage >= 80 ? 'bg-green-500' :
-                            qualityMetrics.testCoverage >= 60 ? 'bg-yellow-500' : 'bg-red-500'
-                          }`}
-                          style={{width: `${qualityMetrics.testCoverage}%`}}
-                        ></div>
-                      </div>
-                      <div className="text-xs text-gray-500">{qualityMetrics.testCoverage}% covered</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Issue Distribution */}
-                <div className="bg-white rounded-xl border border-gray-200 p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Issue Distribution</h3>
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Panel - Exploration Interface */}
+        <div className={`relative bg-white border-r border-gray-200 transition-all duration-300 ${
+          isLeftPanelOpen ? 'w-96' : 'w-0'
+        }`}>
+          <button
+            onClick={() => setIsLeftPanelOpen(!isLeftPanelOpen)}
+            className="absolute top-6 -right-3 z-10 bg-primary text-white rounded-full shadow-lg w-6 h-6 flex items-center justify-center text-sm hover:scale-105 transition-transform"
+          >
+            {isLeftPanelOpen ? '◀' : '▶'}
+          </button>
+          
+          {isLeftPanelOpen && (
+            <div className="h-full p-6 overflow-y-auto">
+              <div className="space-y-8">
+                {/* Step 1: Exploration Criteria Selection */}
+                <section>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                    Step 1: Choose Exploration Focus
+                  </h2>
                   <div className="space-y-3">
-                    {qualityMetrics.issueDistribution.map((item, index) => (
-                      <div key={index} className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className={`w-3 h-3 rounded-full ${
-                            item.type === 'High' ? 'bg-red-500' :
-                            item.type === 'Medium' ? 'bg-yellow-500' : 'bg-blue-500'
-                          }`}></div>
-                          <span className="text-sm font-medium text-gray-700">{item.type}</span>
+                    {EXPLORATION_CRITERIA.map(criteria => (
+                      <button
+                        key={criteria.id}
+                        onClick={() => handleCriteriaSelect(criteria.id)}
+                        className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
+                          selectedCriteria === criteria.id
+                            ? 'border-primary bg-blue-50 shadow-sm'
+                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <span className="text-xl">{criteria.icon}</span>
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-gray-900 text-sm">
+                              {criteria.label}
+                            </h3>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {criteria.description}
+                            </p>
+                          </div>
+                          {selectedCriteria === criteria.id && (
+                            <div className="w-2 h-2 bg-primary rounded-full"></div>
+                          )}
                         </div>
-                        <div className="text-right">
-                          <div className="text-sm font-semibold text-gray-900">{item.count}</div>
-                          <div className="text-xs text-gray-500">{item.percentage}%</div>
-                        </div>
-                      </div>
+                      </button>
                     ))}
-                    <div className="pt-3 border-t border-gray-200">
-                      <div className="flex justify-between text-sm">
-                        <span className="font-medium text-gray-700">Total Issues</span>
-                        <span className="font-semibold text-gray-900">{qualityMetrics.totalWarnings}</span>
-                      </div>
-                    </div>
                   </div>
-                </div>
-              </div>
-            </div>
+                </section>
 
-            {/* Warning List */}
-            <div className="flex-1 bg-white p-6 overflow-y-auto">
-              <div className="space-y-4">
-                <div className="text-right mb-6">
-                  <div className="text-sm text-gray-500">
-                    {filteredAndSortedWarnings.length} warnings found
-                    {(appliedTool || appliedSeverity) && (
-                      <span className="ml-2 text-primary">(filtered)</span>
+                {/* Step 2: Dynamic Filters */}
+                <section>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                    Step 2: Refine Your Selection
+                  </h2>
+                  <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+                    {getFilterConfig(selectedCriteria).map(renderFilterControl)}
+                  </div>
+                </section>
+
+                {/* Step 3: Filtered Function List */}
+                <section>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      Step 3: Explore Functions
+                    </h2>
+                    <span className="text-sm text-gray-500 bg-white px-2 py-1 rounded">
+                      {filteredFunctions.length} found
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {filteredFunctions.slice(0, 20).map(func => {
+                      const isSelected = selectedFunction === func.name;
+                      return (
+                        <div
+                          key={func.id}
+                          onClick={() => handleFunctionSelect(func.name)}
+                          className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                            isSelected
+                              ? 'border-primary bg-blue-50 shadow-md'
+                              : 'border-gray-200 hover:border-primary hover:shadow-sm'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <h3 className={`font-semibold text-sm ${
+                                isSelected ? 'text-primary' : 'text-gray-900'
+                              }`}>
+                                {func.name}
+                              </h3>
+                              <p className="text-xs text-gray-500 truncate">
+                                {func.file}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-lg font-bold text-gray-900">
+                                {func.complexity}
+                              </div>
+                              <div className="text-xs text-gray-400">Complexity</div>
+                            </div>
+                          </div>
+
+                          {/* Metrics Overview */}
+                          <div className="grid grid-cols-3 gap-2 text-xs mb-3">
+                            <div className={`text-center rounded px-2 py-1 ${
+                              isSelected ? 'bg-white' : 'bg-gray-100'
+                            }`}>
+                              ⚠️ {func.totalWarnings}
+                            </div>
+                            <div className={`text-center rounded px-2 py-1 ${
+                              isSelected ? 'bg-white' : 'bg-gray-100'
+                            }`}>
+                              📊 {func.degree}
+                            </div>
+                            <div className={`text-center rounded px-2 py-1 ${
+                              isSelected ? 'bg-white' : 'bg-gray-100'
+                            }`}>
+                              ⚡ {func.easyFixCount}
+                            </div>
+                          </div>
+
+                          {/* Severity Breakdown */}
+                          <div className="flex flex-wrap gap-1 text-xs">
+                            {Object.entries(func.severityCounts).map(([severity, count]) => 
+                              count > 0 && (
+                                <span
+                                  key={severity}
+                                  className={`inline-flex items-center px-2 py-0.5 rounded-full ${
+                                    severity === 'High' ? 'bg-red-100 text-red-800' :
+                                    severity === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-blue-100 text-blue-800'
+                                  }`}
+                                >
+                                  {severity[0]}: {count}
+                                </span>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    
+                    {filteredFunctions.length === 0 && (
+                      <div className="text-center text-gray-400 py-8 border-2 border-dashed rounded-lg">
+                        No functions match your current criteria
+                        <div className="text-xs mt-2">Try adjusting your filters</div>
+                      </div>
                     )}
                   </div>
-                  <div className="text-xs text-gray-400 mt-1">
-                    Click on warnings to analyze functions
-                  </div>
-                </div>
-
-                <div className="space-y-3 overflow-y-auto pr-2">
-                  {filteredAndSortedWarnings.slice(0, visibleWarningsCount).map((warning) => {
-                    const functionDetails = getFunctionDetails(warning.function);
-                    const functionId = getFunctionId(warning.function);
-                    
-                    return (
-                      <div
-                        key={warning.id}
-                        className={`border rounded-lg p-3 hover:shadow-md transition-all cursor-pointer ${
-                          getSeverityColor(warning.severity)
-                        } ${selectedWarnings.includes(warning.id) ? 'ring-2 ring-primary ring-opacity-50' : ''}`}
-                        onClick={() => navigate(`/function/${functionId}`)}
-                        onMouseEnter={() => setHoveredWarning(warning.id)}
-                        onMouseLeave={() => setHoveredWarning(null)}
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex items-center space-x-2">
-                            <div className={`w-2 h-2 rounded-full ${getSeverityDot(warning.severity)}`}></div>
-                            <span className="text-sm font-medium">{warning.severity} Severity</span>
-                          </div>
-                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">{warning.tool}</span>
-                        </div>
-                        <h4 className="text-sm font-semibold text-gray-900 mb-1">{warning.type}</h4>
-                        <p className="text-xs text-gray-600 mb-2 line-clamp-2">{warning.description}</p>
-                        <div className="text-xs text-gray-500">
-                          📁 {warning.file}:{warning.line}
-                        </div>
-                        
-                        {/* Visual Hover Card */}
-                        {hoveredWarning === warning.id && (
-                          <div className="bg-white rounded-lg border border-gray-300 p-3 shadow-lg mt-3">
-                            <div className="flex items-start justify-between mb-2">
-                              <div>
-                                <h4 className="font-semibold text-gray-900 text-sm">{warning.type}</h4>
-                                <p className="text-xs text-gray-600">{warning.description}</p>
-                              </div>
-                              <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded">High Risk</span>
-                            </div>
-
-                            {/* Visual Metrics */}
-                            <div className="space-y-2">
-                              {/* Complexity Gauge */}
-                              <div>
-                                <div className="flex justify-between text-xs mb-1">
-                                  <span className="font-medium">Complexity</span>
-                                  <span className="text-red-600">{functionDetails.complexity}/10</span>
-                                </div>
-                                <div className="flex space-x-1">
-                                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((level) => (
-                                    <div 
-                                      key={level}
-                                      className={`flex-1 h-1.5 rounded ${
-                                        level <= functionDetails.complexity ? 'bg-red-500' : 'bg-gray-200'
-                                      }`}
-                                    ></div>
-                                  ))}
-                                </div>
-                              </div>
-
-                              {/* Call Count Trend */}
-                              <div>
-                                <div className="flex justify-between text-xs mb-1">
-                                  <span className="font-medium">Call Activity</span>
-                                  <span>{functionDetails.callCount} calls</span>
-                                </div>
-                                <div className="flex items-end justify-between h-4 space-x-1">
-                                  {[3, 7, 5, 9, 12, functionDetails.callCount, 11].map((value, idx) => (
-                                    <div 
-                                      key={idx}
-                                      className="flex-1 bg-blue-400 rounded-t transition-all hover:bg-blue-500"
-                                      style={{ height: `${Math.min(100, (value / 20) * 100)}%` }}
-                                    ></div>
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Quick Actions */}
-                            <div className="flex space-x-2 mt-2 pt-2 border-t border-gray-200">
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedWarnings(prev => 
-                                    prev.includes(warning.id) 
-                                      ? prev.filter(id => id !== warning.id)
-                                      : [...prev, warning.id]
-                                  );
-                                }}
-                                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-xs py-1 rounded transition-colors"
-                              >
-                                {selectedWarnings.includes(warning.id) ? 'Selected' : 'Compare'}
-                              </button>
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigate(`/function/${functionId}`);
-                                }}
-                                className="flex-1 bg-gray-500 hover:bg-gray-600 text-white text-xs py-1 rounded transition-colors"
-                              >
-                                Analyze
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                  
-                  {/* Load More Button */}
-                  {visibleWarningsCount < filteredAndSortedWarnings.length && (
-                    <div className="pt-4 border-t border-gray-200">
-                      <button
-                        onClick={loadMoreWarnings}
-                        className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-medium transition-colors duration-200 text-sm"
-                      >
-                        See More ({filteredAndSortedWarnings.length - visibleWarningsCount} remaining)
-                      </button>
-                    </div>
-                  )}
-                </div>
+                </section>
               </div>
             </div>
-          </div>
+          )}
+        </div>
 
-          {/* Graph Panel - Right 70% */}
-          <div className="w-[70%] bg-white p-6 overflow-hidden">
-            <div className="h-full">
-              <div className="mb-4">
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">Call Graph Visualization</h2>
-                <p className="text-sm text-gray-600">
-                  Interactive visualization of function call relationships. Click nodes to analyze functions.
-                </p>
-              </div>
+        {/* Right Panel - Call Graph */}
+        <div className="flex-1 bg-white p-6 overflow-hidden">
+          <div className="h-full flex flex-col">
+            <div className="mb-4">
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                Call Graph Visualization
+              </h2>
+              <p className="text-sm text-gray-600">
+                {selectedFunction 
+                  ? `Analyzing impact and relationships of ${selectedFunction}`
+                  : 'Select a function from the list to explore its call relationships and impact'
+                }
+              </p>
+            </div>
+            
+            <div className="flex-1 border rounded-lg bg-gray-50">
               <CallGraph 
-                selectedFunction={selectedGraphNode?.name}
+                selectedFunction={selectedFunction}
                 onNodeClick={handleNodeClick}
+                highlightedFunctions={new Set(filteredFunctions.map(f => f.name))}
               />
             </div>
           </div>

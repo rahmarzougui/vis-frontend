@@ -55,6 +55,34 @@ const FunctionDetailPage = () => {
 
   const qualityScore = Math.max(0, 100 - func.complexity * 5 - func.warnings.length * 10);
 
+  // Exploration context based on function characteristics
+  const ExplorationContext = () => {
+    const getExplorationContext = () => {
+      if (func.complexity > 15) return { type: 'complexity', label: 'High Complexity Function', description: 'This function has very high complexity and is a prime candidate for refactoring.' };
+      if (func.warnings.filter(w => w.severity === 'High').length > 2) return { type: 'high-severity', label: 'Critical Warning Hotspot', description: 'Contains multiple high-severity warnings that need immediate attention.' };
+      if (func.warnings.filter(w => w.severity === 'Low').length > 3) return { type: 'easy-fix', label: 'Quick Win Opportunity', description: 'Has several easy-to-fix warnings that can improve code quality quickly.' };
+      return null;
+    };
+
+    const context = getExplorationContext();
+    if (!context) return null;
+
+    return (
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div className="flex items-center space-x-3">
+          <span className="text-lg">
+            {context.type === 'complexity' ? '📊' : 
+             context.type === 'high-severity' ? '🔴' : '⚡'}
+          </span>
+          <div>
+            <h4 className="font-semibold text-blue-900">{context.label}</h4>
+            <p className="text-sm text-blue-700">{context.description}</p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex h-[calc(100vh-73px)]">
       {/* Left Panel - Function Info */}
@@ -89,21 +117,23 @@ const FunctionDetailPage = () => {
           </div>
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-blue-900 mb-2">
-              Quick Actions
+            <h4 className="text-sm font-medium text-blue-900 mb-3">
+              Exploration Actions
             </h4>
             <div className="space-y-2">
               <button
                 onClick={() => navigate(`/graph/${func.id}`)}
-                className="w-full bg-primary hover:bg-blue-700 text-white py-2 px-3 rounded text-sm font-medium transition-colors"
+                className="w-full bg-primary hover:bg-blue-700 text-white py-2 px-3 rounded text-sm font-medium transition-colors flex items-center space-x-2"
               >
-                View Call Graph
+                <span>📊</span>
+                <span>Explore Call Impact</span>
               </button>
               <button
-                onClick={() => setComparedFunctions(prev => [...prev, func.id])}
-                className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-3 rounded text-sm font-medium transition-colors"
+                onClick={() => navigate('/warnings?criteria=complexity')}
+                className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 px-3 rounded text-sm font-medium transition-colors flex items-center space-x-2"
               >
-                Add to Comparison
+                <span>🔍</span>
+                <span>Find Similar Functions</span>
               </button>
             </div>
           </div>
@@ -151,6 +181,9 @@ const FunctionDetailPage = () => {
               </button>
             </div>
           </div>
+
+          {/* Exploration Context */}
+          <ExplorationContext />
 
           {/* Navigation Tabs */}
           <div className="border-b border-gray-200 mb-8">
@@ -279,6 +312,25 @@ const FunctionDetailPage = () => {
                       </div>
                     )}
                   </div>
+                </div>
+              </div>
+
+              {/* Impact Analysis Section */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Impact Analysis</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+                  <div className="text-center p-3 bg-gray-50 rounded border">
+                    <div className="font-semibold text-gray-900">{func.callCount}</div>
+                    <div className="text-gray-600 text-xs">Direct Dependents</div>
+                  </div>
+                  <div className="text-center p-3 bg-gray-50 rounded border">
+                    <div className="font-semibold text-gray-900">{Math.floor(func.complexity * 1.5)}</div>
+                    <div className="text-gray-600 text-xs">Estimated Impact Radius</div>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-600">
+                  This function affects {func.callCount} other functions directly. 
+                  {func.complexity > 10 && " High complexity increases maintenance cost across dependent functions."}
                 </div>
               </div>
 

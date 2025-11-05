@@ -7,6 +7,7 @@ const CallGraphPage = () => {
   const navigate = useNavigate();
   const [graphDepth, setGraphDepth] = useState('direct');
   const [selectedComplexity, setSelectedComplexity] = useState([]);
+  const [explorationFocus, setExplorationFocus] = useState('all');
   
   const functionId = parseInt(id || '1');
   const func = mockFunctions.find(f => f.id === functionId);
@@ -34,6 +35,13 @@ const CallGraphPage = () => {
         : [...prev, complexity]
     );
   };
+
+  // Mock called functions data with proper IDs
+  const calledFunctions = [
+    { id: 2, name: 'validateInput', complexity: 6, warnings: 0 },
+    { id: 3, name: 'processData', complexity: 12, warnings: 2 },
+    { id: 4, name: 'helperUtil', complexity: 4, warnings: 0 },
+  ];
 
   return (
     <div className="h-[calc(100vh-73px)] flex flex-col">
@@ -66,8 +74,36 @@ const CallGraphPage = () => {
         {/* Sidebar for graph controls */}
         <div className="w-80 bg-gray-50 border-r border-gray-200 p-6 overflow-y-auto">
           <div className="space-y-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Graph Controls</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">Exploration Focus</h3>
             
+            {/* Exploration Criteria */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Highlight Functions By
+              </label>
+              <div className="space-y-2">
+                {[
+                  { value: 'complexity', label: 'High Complexity', icon: '📊' },
+                  { value: 'high-severity', label: 'Critical Warnings', icon: '🔴' },
+                  { value: 'easy-fix', label: 'Easy Fixes', icon: '⚡' },
+                  { value: 'all', label: 'All Criteria', icon: '🎯' }
+                ].map(option => (
+                  <button
+                    key={option.value}
+                    onClick={() => setExplorationFocus(option.value)}
+                    className={`w-full text-left p-3 rounded-lg border transition-colors flex items-center space-x-3 ${
+                      explorationFocus === option.value
+                        ? 'border-primary bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <span className="text-lg">{option.icon}</span>
+                    <span className="text-sm font-medium">{option.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-3">
                 Analysis Depth
@@ -122,16 +158,25 @@ const CallGraphPage = () => {
               </div>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="text-sm font-medium text-blue-900 mb-2">
-                Analysis Tips
+            {/* Impact Analysis */}
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <h4 className="text-sm font-medium text-yellow-900 mb-2">
+                Impact Analysis
               </h4>
-              <ul className="text-xs text-blue-700 space-y-1">
-                <li>• Hover over nodes for details</li>
-                <li>• Click nodes to navigate</li>
-                <li>• Red borders indicate high complexity</li>
-                <li>• Dashed lines show indirect calls</li>
-              </ul>
+              <div className="space-y-2 text-xs text-yellow-700">
+                <div className="flex justify-between">
+                  <span>Functions affected:</span>
+                  <span className="font-medium">8</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Critical path length:</span>
+                  <span className="font-medium">4</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Risk propagation:</span>
+                  <span className="font-medium text-red-600">High</span>
+                </div>
+              </div>
             </div>
 
             <button className="w-full bg-primary hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors">
@@ -163,7 +208,10 @@ const CallGraphPage = () => {
                 <div className="flex flex-col items-center space-y-8">
                   {/* Level 1 */}
                   <div className="flex items-center justify-center space-x-8">
-                    <div className="bg-white rounded-lg p-4 shadow-md border-2 border-green-400 text-center min-w-[120px]">
+                    <div 
+                      className="bg-white rounded-lg p-4 shadow-md border-2 border-green-400 text-center min-w-[120px] cursor-pointer hover:shadow-lg transition-all"
+                      onClick={() => navigate('/function/1')}
+                    >
                       <div className="text-xs font-semibold text-gray-600">main()</div>
                       <div className="text-[10px] text-gray-500 mt-1">CC: 8</div>
                     </div>
@@ -174,7 +222,10 @@ const CallGraphPage = () => {
 
                   {/* Level 2 - Current Function */}
                   <div className="flex items-center justify-center space-x-8">
-                    <div className="bg-white rounded-lg p-4 shadow-lg border-2 border-yellow-400 text-center min-w-[140px] transform scale-105">
+                    <div 
+                      className="bg-white rounded-lg p-4 shadow-lg border-2 border-yellow-400 text-center min-w-[140px] transform scale-105 cursor-pointer hover:shadow-xl transition-all"
+                      onClick={() => navigate(`/function/${func.id}`)}
+                    >
                       <div className="text-sm font-bold text-gray-800">{func.name}</div>
                       <div className="text-xs text-gray-600 mt-1">Current Focus</div>
                       <div className="text-[10px] text-gray-500 mt-1">CC: {func.complexity}</div>
@@ -189,15 +240,14 @@ const CallGraphPage = () => {
 
                   {/* Level 3 - Called Functions */}
                   <div className="flex items-center justify-center space-x-6">
-                    {[
-                      { name: 'validateInput', complexity: 6, warnings: 0 },
-                      { name: 'processData', complexity: 12, warnings: 2 },
-                      { name: 'helperUtil', complexity: 4, warnings: 0 },
-                    ].map((callee, index) => (
-                      <div key={index} className="flex flex-col items-center">
-                        <div className={`bg-white rounded-lg p-3 shadow-sm border-2 text-center min-w-[100px] ${
-                          callee.complexity > 10 ? 'border-red-300' : 'border-blue-300'
-                        }`}>
+                    {calledFunctions.map((callee) => (
+                      <div key={callee.id} className="flex flex-col items-center">
+                        <div 
+                          className={`bg-white rounded-lg p-3 shadow-sm border-2 text-center min-w-[100px] cursor-pointer transition-all hover:shadow-md ${
+                            callee.complexity > 10 ? 'border-red-300' : 'border-blue-300'
+                          }`}
+                          onClick={() => navigate(`/function/${callee.id}`)}
+                        >
                           <div className="text-xs font-semibold text-gray-700">{callee.name}</div>
                           <div className="text-[10px] text-gray-500 mt-1">CC: {callee.complexity}</div>
                           {callee.warnings > 0 && (
@@ -207,7 +257,7 @@ const CallGraphPage = () => {
                           )}
                         </div>
                         <button
-                          onClick={() => navigate(`/function/${index + 2}`)}
+                          onClick={() => navigate(`/function/${callee.id}`)}
                           className="mt-2 bg-primary hover:bg-blue-700 text-white px-2 py-1 rounded text-xs transition-colors"
                         >
                           Analyze
