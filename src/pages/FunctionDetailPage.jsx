@@ -97,7 +97,7 @@ const FunctionDetailPage = () => {
                 onClick={() => navigate(`/graph/${func.id}`)}
                 className="w-full bg-primary hover:bg-blue-700 text-white py-2 px-3 rounded text-sm font-medium transition-colors"
               >
-                View Call Graph
+                View Function Detail Graph
               </button>
               <button
                 onClick={() => setComparedFunctions(prev => [...prev, func.id])}
@@ -147,7 +147,7 @@ const FunctionDetailPage = () => {
                 className="bg-primary hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 shadow-sm hover:shadow-md flex items-center space-x-2"
               >
                 <span>📊</span>
-                <span>View Call Graph</span>
+                <span>View Function Detail Graph</span>
               </button>
             </div>
           </div>
@@ -404,7 +404,7 @@ const FunctionDetailPage = () => {
           >
             <span className="text-lg">📊</span>
             <div>
-              <div className="font-semibold">View Call Graph</div>
+              <div className="font-semibold">View Function Detail Graph</div>
               <div className="text-xs opacity-90">Explore function relationships</div>
             </div>
           </button>
