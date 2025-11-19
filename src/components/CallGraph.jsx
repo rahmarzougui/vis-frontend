@@ -283,6 +283,8 @@ const CallGraph = ({ selectedFunction = null, onNodeClick = null }) => {
               getDatumId(e.source) === d.id || getDatumId(e.target) === d.id ? '#2563eb' : '#cbd5f5'
             );
         }
+        // When a function is selected, don't change the view on hover
+        // Just show the tooltip - depth filtering stays based on selected function
 
         const tooltip = d3.select('body').append('div')
           .attr('class', 'tooltip')
@@ -313,9 +315,9 @@ const CallGraph = ({ selectedFunction = null, onNodeClick = null }) => {
           link
             .attr('stroke', '#999')
             .attr('stroke-opacity', 0.6);
-        } else {
-          applyHighlight(selectedFunctionRef.current);
         }
+        // When a function is selected, view doesn't change on hover/mouseout
+        // No need to restore anything - depth filtering is always based on selected function
         d3.select('.tooltip').remove();
       })
       .on('click', function(event, d) {
