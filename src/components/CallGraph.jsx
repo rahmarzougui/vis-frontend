@@ -12,6 +12,7 @@ const CallGraph = ({ selectedFunction = null, onNodeClick = null }) => {
   const edgesDataRef = useRef([]);
   const selectedFunctionRef = useRef(selectedFunction);
   const onNodeClickRef = useRef(onNodeClick);
+  const tooltipRef = useRef(null);
 
   useEffect(() => {
     const svgElement = svgRef.current;
@@ -286,6 +287,11 @@ const CallGraph = ({ selectedFunction = null, onNodeClick = null }) => {
         // When a function is selected, don't change the view on hover
         // Just show the tooltip - depth filtering stays based on selected function
 
+        // Remove any existing tooltip first
+        if (tooltipRef.current) {
+          tooltipRef.current.remove();
+        }
+
         const tooltip = d3.select('body').append('div')
           .attr('class', 'tooltip')
           .style('position', 'absolute')
@@ -297,6 +303,8 @@ const CallGraph = ({ selectedFunction = null, onNodeClick = null }) => {
           .style('pointer-events', 'none')
           .style('z-index', '1000');
 
+        tooltipRef.current = tooltip.node();
+
         tooltip.html(`
           <strong>${d.name}</strong><br/>
           In-degree: ${d.in_degree}<br/>
@@ -305,9 +313,11 @@ const CallGraph = ({ selectedFunction = null, onNodeClick = null }) => {
         `);
       })
       .on('mousemove', function(event) {
-        d3.select('.tooltip')
-          .style('left', (event.pageX + 10) + 'px')
-          .style('top', (event.pageY - 10) + 'px');
+        if (tooltipRef.current) {
+          d3.select(tooltipRef.current)
+            .style('left', (event.pageX + 10) + 'px')
+            .style('top', (event.pageY - 10) + 'px');
+        }
       })
       .on('mouseout', () => {
         if (!selectedFunctionRef.current) {
@@ -318,9 +328,17 @@ const CallGraph = ({ selectedFunction = null, onNodeClick = null }) => {
         }
         // When a function is selected, view doesn't change on hover/mouseout
         // No need to restore anything - depth filtering is always based on selected function
-        d3.select('.tooltip').remove();
+        if (tooltipRef.current) {
+          d3.select(tooltipRef.current).remove();
+          tooltipRef.current = null;
+        }
       })
       .on('click', function(event, d) {
+        // Remove tooltip when clicking on a node
+        if (tooltipRef.current) {
+          d3.select(tooltipRef.current).remove();
+          tooltipRef.current = null;
+        }
         const handler = onNodeClickRef.current;
         if (handler) {
           handler(d);
@@ -363,6 +381,13 @@ const CallGraph = ({ selectedFunction = null, onNodeClick = null }) => {
       simulation.stop();
       nodeSelectionRef.current = null;
       linkSelectionRef.current = null;
+      // Clean up any lingering tooltips
+      if (tooltipRef.current) {
+        d3.select(tooltipRef.current).remove();
+        tooltipRef.current = null;
+      }
+      // Also remove any tooltips by class name as a fallback
+      d3.selectAll('.tooltip').remove();
     };
   }, [dimensions, applyHighlight, getDatumId, depthLevel]);
 
@@ -374,6 +399,11 @@ const CallGraph = ({ selectedFunction = null, onNodeClick = null }) => {
     selectedFunctionRef.current = selectedFunction;
     if (!selectedFunction) {
       setDepthLevel(1); // Reset depth when no function is selected
+    }
+    // Remove tooltip when selected function changes
+    if (tooltipRef.current) {
+      d3.select(tooltipRef.current).remove();
+      tooltipRef.current = null;
     }
     applyHighlight(selectedFunction, depthLevel);
   }, [selectedFunction, depthLevel, applyHighlight]);
