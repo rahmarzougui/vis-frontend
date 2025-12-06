@@ -667,14 +667,24 @@ const WarningsPage = ({
                                 </p>
                               </div>
                               <div className="flex items-center gap-2 flex-shrink-0">
-                                <div className="text-right">
+                                <div className={`text-right rounded px-2 py-1 ${
+                                  selectedPreset === 'complexity' && (isInSubgraphSelection || isSelectedForOverview)
+                                    ? 'bg-blue-200 border-2 border-blue-400'
+                                    : selectedPreset === 'complexity'
+                                    ? 'bg-blue-100 border border-blue-300'
+                                    : ''
+                                }`}>
                                   <div className={`text-[9px] font-medium ${
-                                    isInSubgraphSelection || isSelectedForOverview ? 'text-gray-600' : 'text-gray-400'
+                                    selectedPreset === 'complexity'
+                                      ? 'text-blue-900'
+                                      : isInSubgraphSelection || isSelectedForOverview ? 'text-gray-600' : 'text-gray-400'
                                   }`}>
                                     CC
                                   </div>
                                   <div className={`text-sm font-bold ${
-                                    isInSubgraphSelection || isSelectedForOverview ? 'text-gray-900' : 'text-gray-900'
+                                    selectedPreset === 'complexity'
+                                      ? 'text-blue-900'
+                                      : isInSubgraphSelection || isSelectedForOverview ? 'text-gray-900' : 'text-gray-900'
                                   }`}>
                                     {func.complexity}
                                   </div>
@@ -683,24 +693,28 @@ const WarningsPage = ({
                             </div>
 
                             <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
-                              <div className={`rounded px-1.5 py-0.5 text-[9px] ${
+                              <div className={`rounded px-2 py-1 text-[10px] font-medium ${
                                 isInSubgraphSelection || isSelectedForOverview
                                   ? 'bg-gray-100 text-gray-700'
-                                  : 'bg-gray-50 text-gray-600'
+                                  : 'bg-gray-50 text-gray-700'
                               }`}>
                                 경고 {func.warningCount}
                               </div>
-                              <div className={`rounded px-1.5 py-0.5 text-[9px] ${
+                              <div className={`rounded px-2 py-1 text-[10px] font-medium ${
                                 isInSubgraphSelection || isSelectedForOverview
                                   ? 'bg-gray-100 text-gray-700'
-                                  : 'bg-gray-50 text-gray-600'
+                                  : 'bg-gray-50 text-gray-700'
                               }`}>
                                 D {func.degree}
                               </div>
-                              <div className={`rounded px-1.5 py-0.5 text-[9px] ${
-                                isInSubgraphSelection || isSelectedForOverview
+                              <div className={`rounded px-2 py-1 text-[10px] font-medium ${
+                                selectedPreset === 'easy' && (isInSubgraphSelection || isSelectedForOverview)
+                                  ? 'bg-green-200 text-green-900 border-2 border-green-400'
+                                  : selectedPreset === 'easy'
+                                  ? 'bg-green-100 text-green-800 border border-green-300'
+                                  : isInSubgraphSelection || isSelectedForOverview
                                   ? 'bg-gray-100 text-gray-700'
-                                  : 'bg-gray-50 text-gray-600'
+                                  : 'bg-gray-50 text-gray-700'
                               }`}>
                                 E {func.easyFixCount}
                               </div>
@@ -708,10 +722,14 @@ const WarningsPage = ({
                                 func.severityCounts[level] ? (
                                   <span
                                     key={level}
-                                    className={`inline-flex items-center rounded px-1 py-0.5 text-[9px] border ${
-                                      isInSubgraphSelection || isSelectedForOverview
-                                        ? 'border-gray-300 text-gray-700'
-                                        : 'border-gray-200 text-gray-600'
+                                    className={`inline-flex items-center rounded px-2 py-1 text-[10px] font-medium border ${
+                                      selectedPreset === 'severity' && level === 'High' && (isInSubgraphSelection || isSelectedForOverview)
+                                        ? 'bg-red-200 text-red-900 border-2 border-red-400'
+                                        : selectedPreset === 'severity' && level === 'High'
+                                        ? 'bg-red-100 text-red-800 border border-red-300'
+                                        : isInSubgraphSelection || isSelectedForOverview
+                                        ? 'border-gray-300 text-gray-700 bg-gray-100'
+                                        : 'border-gray-200 text-gray-700 bg-gray-50'
                                     }`}
                                   >
                                     {level[0]}{func.severityCounts[level]}
