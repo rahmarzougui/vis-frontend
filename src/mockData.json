@@ -1,0 +1,524 @@
+{
+  "warnings": [
+    {
+      "id": 1,
+      "tool": "Infer",
+      "type": "NULL_DEREF",
+      "severity": "High",
+      "function": "open_db",
+      "description": "Potential null pointer dereference detected",
+      "file": "src/database/connection.js",
+      "line": 15
+    },
+    {
+      "id": 2,
+      "tool": "Clang",
+      "type": "Memory Leak",
+      "severity": "Medium",
+      "function": "init_cache",
+      "description": "Memory allocated but not freed",
+      "file": "src/cache/manager.js",
+      "line": 42
+    },
+    {
+      "id": 3,
+      "tool": "Lizard",
+      "type": "High Complexity",
+      "severity": "Low",
+      "function": "parse_file",
+      "description": "Function complexity exceeds recommended threshold",
+      "file": "src/parser/fileParser.js",
+      "line": 78
+    },
+    {
+      "id": 4,
+      "tool": "ESLint",
+      "type": "Unused Variable",
+      "severity": "Low",
+      "function": "process_data",
+      "description": "Variable 'temp' is assigned but never used",
+      "file": "src/utils/processor.js",
+      "line": 23
+    },
+    {
+      "id": 5,
+      "tool": "JavaScript",
+      "type": "Type Error",
+      "severity": "High",
+      "function": "validate_input",
+      "description": "Type 'string' is not assignable to type 'number'",
+      "file": "src/validation/input.js",
+      "line": 12
+    },
+    {
+      "id": 6,
+      "tool": "SonarQube",
+      "type": "Code Smell",
+      "severity": "Medium",
+      "function": "calculate_score",
+      "description": "Method has too many parameters (8). Consider refactoring",
+      "file": "src/analytics/scoring.js",
+      "line": 34
+    },
+    {
+      "id": 7,
+      "tool": "PMD",
+      "type": "Duplicate Code",
+      "severity": "Low",
+      "function": "format_date",
+      "description": "Duplicate code detected in similar methods",
+      "file": "src/utils/dateHelper.js",
+      "line": 67
+    },
+    {
+      "id": 8,
+      "tool": "SpotBugs",
+      "type": "Dead Store",
+      "severity": "Medium",
+      "function": "process_payment",
+      "description": "Variable 'result' is assigned but never used",
+      "file": "src/payment/processor.js",
+      "line": 89
+    },
+    {
+      "id": 9,
+      "tool": "Checkstyle",
+      "type": "Line Length",
+      "severity": "Low",
+      "function": "generate_report",
+      "description": "Line is longer than 120 characters",
+      "file": "src/reports/generator.js",
+      "line": 156
+    },
+    {
+      "id": 10,
+      "tool": "FindBugs",
+      "type": "Infinite Loop",
+      "severity": "High",
+      "function": "search_recursive",
+      "description": "Potential infinite loop detected",
+      "file": "src/search/algorithm.js",
+      "line": 203
+    },
+    {
+      "id": 11,
+      "tool": "ESLint",
+      "type": "Console Statement",
+      "severity": "Low",
+      "function": "debug_log",
+      "description": "Unexpected console statement",
+      "file": "src/debug/logger.js",
+      "line": 45
+    },
+    {
+      "id": 12,
+      "tool": "Clang Static Analyzer",
+      "type": "Use After Free",
+      "severity": "High",
+      "function": "cleanup_resources",
+      "description": "Use of memory after it has been freed",
+      "file": "src/memory/cleanup.js",
+      "line": 78
+    },
+    {
+      "id": 13,
+      "tool": "Lizard",
+      "type": "Too Many Parameters",
+      "severity": "Medium",
+      "function": "create_user",
+      "description": "Function has too many parameters (7)",
+      "file": "src/auth/userManager.js",
+      "line": 92
+    },
+    {
+      "id": 14,
+      "tool": "Infer",
+      "type": "Resource Leak",
+      "severity": "High",
+      "function": "open_file",
+      "description": "File handle not closed in all code paths",
+      "file": "src/io/fileHandler.js",
+      "line": 134
+    },
+    {
+      "id": 15,
+      "tool": "JavaScript",
+      "type": "Implicit Any",
+      "severity": "Medium",
+      "function": "parse_config",
+      "description": "Parameter 'options' implicitly has an 'any' type",
+      "file": "src/config/parser.js",
+      "line": 28
+    }
+  ],
+  "functions": [
+    {
+      "id": 1,
+      "name": "open_db",
+      "complexity": 8,
+      "file": "src/database/connection.js",
+      "callCount": 15,
+      "description": "Opens a database connection with error handling",
+      "warnings": [1]
+    },
+    {
+      "id": 2,
+      "name": "init_cache",
+      "complexity": 5,
+      "file": "src/cache/manager.js",
+      "callCount": 3,
+      "description": "Initializes the application cache system",
+      "warnings": [2]
+    },
+    {
+      "id": 3,
+      "name": "parse_file",
+      "complexity": 12,
+      "file": "src/parser/fileParser.js",
+      "callCount": 8,
+      "description": "Parses configuration files and extracts data",
+      "warnings": [3]
+    },
+    {
+      "id": 4,
+      "name": "process_data",
+      "complexity": 6,
+      "file": "src/utils/processor.js",
+      "callCount": 22,
+      "description": "Processes raw data and applies transformations",
+      "warnings": [4]
+    },
+    {
+      "id": 5,
+      "name": "validate_input",
+      "complexity": 4,
+      "file": "src/validation/input.js",
+      "callCount": 7,
+      "description": "Validates user input parameters",
+      "warnings": [5]
+    },
+    {
+      "id": 6,
+      "name": "calculate_score",
+      "complexity": 9,
+      "file": "src/analytics/scoring.js",
+      "callCount": 12,
+      "description": "Calculates user performance scores based on multiple metrics",
+      "warnings": [6]
+    },
+    {
+      "id": 7,
+      "name": "format_date",
+      "complexity": 3,
+      "file": "src/utils/dateHelper.js",
+      "callCount": 45,
+      "description": "Formats date strings according to locale preferences",
+      "warnings": [7]
+    },
+    {
+      "id": 8,
+      "name": "process_payment",
+      "complexity": 11,
+      "file": "src/payment/processor.js",
+      "callCount": 6,
+      "description": "Processes payment transactions with security validation",
+      "warnings": [8]
+    },
+    {
+      "id": 9,
+      "name": "generate_report",
+      "complexity": 7,
+      "file": "src/reports/generator.js",
+      "callCount": 9,
+      "description": "Generates comprehensive reports from data analysis",
+      "warnings": [9]
+    },
+    {
+      "id": 10,
+      "name": "search_recursive",
+      "complexity": 15,
+      "file": "src/search/algorithm.js",
+      "callCount": 4,
+      "description": "Performs recursive search through hierarchical data structures",
+      "warnings": [10]
+    },
+    {
+      "id": 11,
+      "name": "debug_log",
+      "complexity": 2,
+      "file": "src/debug/logger.js",
+      "callCount": 18,
+      "description": "Logs debug information with timestamp and context",
+      "warnings": [11]
+    },
+    {
+      "id": 12,
+      "name": "cleanup_resources",
+      "complexity": 6,
+      "file": "src/memory/cleanup.js",
+      "callCount": 5,
+      "description": "Cleans up allocated memory and system resources",
+      "warnings": [12]
+    },
+    {
+      "id": 13,
+      "name": "create_user",
+      "complexity": 8,
+      "file": "src/auth/userManager.js",
+      "callCount": 11,
+      "description": "Creates new user accounts with validation and encryption",
+      "warnings": [13]
+    },
+    {
+      "id": 14,
+      "name": "open_file",
+      "complexity": 5,
+      "file": "src/io/fileHandler.js",
+      "callCount": 13,
+      "description": "Opens files with proper error handling and resource management",
+      "warnings": [14]
+    },
+    {
+      "id": 15,
+      "name": "parse_config",
+      "complexity": 4,
+      "file": "src/config/parser.js",
+      "callCount": 7,
+      "description": "Parses configuration files and validates settings",
+      "warnings": [15]
+    }
+  ],
+  "nodes": [
+    {
+      "id": "open_db",
+      "name": "open_db",
+      "in_degree": 2,
+      "out_degree": 4,
+      "degree": 6
+    },
+    {
+      "id": "init_cache",
+      "name": "init_cache",
+      "in_degree": 1,
+      "out_degree": 2,
+      "degree": 3
+    },
+    {
+      "id": "parse_file",
+      "name": "parse_file",
+      "in_degree": 3,
+      "out_degree": 5,
+      "degree": 8
+    },
+    {
+      "id": "process_data",
+      "name": "process_data",
+      "in_degree": 4,
+      "out_degree": 3,
+      "degree": 7
+    },
+    {
+      "id": "validate_input",
+      "name": "validate_input",
+      "in_degree": 2,
+      "out_degree": 1,
+      "degree": 3
+    },
+    {
+      "id": "calculate_score",
+      "name": "calculate_score",
+      "in_degree": 2,
+      "out_degree": 2,
+      "degree": 4
+    },
+    {
+      "id": "format_date",
+      "name": "format_date",
+      "in_degree": 3,
+      "out_degree": 0,
+      "degree": 3
+    },
+    {
+      "id": "process_payment",
+      "name": "process_payment",
+      "in_degree": 2,
+      "out_degree": 3,
+      "degree": 5
+    },
+    {
+      "id": "generate_report",
+      "name": "generate_report",
+      "in_degree": 3,
+      "out_degree": 1,
+      "degree": 4
+    },
+    {
+      "id": "search_recursive",
+      "name": "search_recursive",
+      "in_degree": 1,
+      "out_degree": 2,
+      "degree": 3
+    },
+    {
+      "id": "debug_log",
+      "name": "debug_log",
+      "in_degree": 5,
+      "out_degree": 0,
+      "degree": 5
+    },
+    {
+      "id": "cleanup_resources",
+      "name": "cleanup_resources",
+      "in_degree": 2,
+      "out_degree": 0,
+      "degree": 2
+    },
+    {
+      "id": "create_user",
+      "name": "create_user",
+      "in_degree": 1,
+      "out_degree": 3,
+      "degree": 4
+    },
+    {
+      "id": "open_file",
+      "name": "open_file",
+      "in_degree": 2,
+      "out_degree": 2,
+      "degree": 4
+    },
+    {
+      "id": "parse_config",
+      "name": "parse_config",
+      "in_degree": 1,
+      "out_degree": 2,
+      "degree": 3
+    }
+  ],
+  "edges": [
+    {
+      "source": "open_db",
+      "target": "init_cache"
+    },
+    {
+      "source": "open_db",
+      "target": "debug_log"
+    },
+    {
+      "source": "open_db",
+      "target": "cleanup_resources"
+    },
+    {
+      "source": "open_db",
+      "target": "open_file"
+    },
+    {
+      "source": "init_cache",
+      "target": "debug_log"
+    },
+    {
+      "source": "init_cache",
+      "target": "cleanup_resources"
+    },
+    {
+      "source": "parse_file",
+      "target": "validate_input"
+    },
+    {
+      "source": "parse_file",
+      "target": "process_data"
+    },
+    {
+      "source": "parse_file",
+      "target": "debug_log"
+    },
+    {
+      "source": "parse_file",
+      "target": "format_date"
+    },
+    {
+      "source": "parse_file",
+      "target": "open_file"
+    },
+    {
+      "source": "process_data",
+      "target": "calculate_score"
+    },
+    {
+      "source": "process_data",
+      "target": "debug_log"
+    },
+    {
+      "source": "process_data",
+      "target": "format_date"
+    },
+    {
+      "source": "validate_input",
+      "target": "debug_log"
+    },
+    {
+      "source": "calculate_score",
+      "target": "generate_report"
+    },
+    {
+      "source": "calculate_score",
+      "target": "debug_log"
+    },
+    {
+      "source": "format_date",
+      "target": "debug_log"
+    },
+    {
+      "source": "process_payment",
+      "target": "validate_input"
+    },
+    {
+      "source": "process_payment",
+      "target": "debug_log"
+    },
+    {
+      "source": "process_payment",
+      "target": "cleanup_resources"
+    },
+    {
+      "source": "generate_report",
+      "target": "debug_log"
+    },
+    {
+      "source": "search_recursive",
+      "target": "debug_log"
+    },
+    {
+      "source": "search_recursive",
+      "target": "process_data"
+    },
+    {
+      "source": "create_user",
+      "target": "validate_input"
+    },
+    {
+      "source": "create_user",
+      "target": "debug_log"
+    },
+    {
+      "source": "create_user",
+      "target": "cleanup_resources"
+    },
+    {
+      "source": "open_file",
+      "target": "debug_log"
+    },
+    {
+      "source": "open_file",
+      "target": "cleanup_resources"
+    },
+    {
+      "source": "parse_config",
+      "target": "parse_file"
+    },
+    {
+      "source": "parse_config",
+      "target": "debug_log"
+    }
+  ]
+}
