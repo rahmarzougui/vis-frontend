@@ -387,6 +387,33 @@ const CallGraphWebGL = ({
 
         // Check if nodes have positions
         if (nodes.length > 0 && nodes[0].x !== undefined) {
+          // Prefer centering on the matched (searched) function node
+          const matchedIds = subgraphMatchedIdsRef.current || new Set();
+          const primaryNode =
+            nodes.find((n) => matchedIds.has(n.id)) || nodes[0];
+
+          console.log('[DebugCenter] --- Subgraph settle complete ---');
+          console.log('[DebugCenter] searchTermRef:', searchTermRef.current);
+          console.log(
+            '[DebugCenter] matchedIds:',
+            Array.from(matchedIds.values()).slice(0, 5),
+          );
+          console.log(
+            '[DebugCenter] primaryNode:',
+            primaryNode?.id,
+            'coords:',
+            primaryNode?.x,
+            primaryNode?.y,
+          );
+          console.log(
+            '[DebugCenter] sample node positions:',
+            nodes.slice(0, 5).map((n) => ({
+              id: n.id,
+              x: n.x,
+              y: n.y,
+            })),
+          );
+
           const xs = nodes.map(n => n.x);
           const ys = nodes.map(n => n.y);
           const minX = Math.min(...xs);
@@ -394,8 +421,9 @@ const CallGraphWebGL = ({
           const minY = Math.min(...ys);
           const maxY = Math.max(...ys);
 
-          const centerX = (minX + maxX) / 2;
-          const centerY = (minY + maxY) / 2;
+          // Use bounding box for zoom level, but center camera on primary node
+          const centerX = primaryNode.x;
+          const centerY = primaryNode.y;
 
           const width = Math.max(maxX - minX, 100);
           const height = Math.max(maxY - minY, 100);
@@ -405,9 +433,17 @@ const CallGraphWebGL = ({
           const zoomFit = Math.min(containerWidth / width, containerHeight / height) * 0.8;
           const finalZoom = Math.min(Math.max(zoomFit, 0.8), 3.0); // Clamp zoom
 
+          console.log('[DebugCenter] bbox:', { minX, maxX, minY, maxY, width, height });
+          console.log('[DebugCenter] container:', { containerWidth, containerHeight });
+          console.log('[DebugCenter] center target:', { centerX, centerY, finalZoom });
+
           console.log('[Search] Centering at', centerX, centerY, 'with zoom', finalZoom);
           graphRef.current.centerAt(centerX, centerY, 1000);
           graphRef.current.zoom(finalZoom, 1000);
+
+          // 검색 서브그래프에서는 배치가 끝난 뒤 추가로 뷰가 튀지 않도록
+          // 이후 움직임이 보이면, console에서 DebugCenter 로그 시점을 기준으로
+          // 어떤 다른 이벤트(onZoom, onEngineStop 등)가 뒤에 호출되는지 확인해 주세요.
         } else {
           console.log('[Search] Nodes do not have positions yet, using default view');
           graphRef.current.centerAt(0, 0, 1000);
@@ -770,11 +806,6 @@ const CallGraphWebGL = ({
         const isOutEdge = hoverOutEdgesRef.current.has(linkId);
         const isHighlighted = highlightLinksRef.current.has(link);
 
-        // Debug logging for first few links when hover is active
-        if (hasHover && (isInEdge || isOutEdge)) {
-          console.log('[linkColor] Link:', linkId, 'isInEdge:', isInEdge, 'isOutEdge:', isOutEdge);
-        }
-
         // Differentiate in-edges and out-edges with different colors
         if (isInEdge) {
           return 'rgba(100, 255, 100, 0.8)'; // Green for incoming edges
@@ -1041,19 +1072,11 @@ const CallGraphWebGL = ({
       })
       .onEngineStop(() => {
         console.log('[EngineStop] Simulation engine stopped - nodes have settled');
-        // Only set initial zoom once on first load
+        // 더 이상 엔진 정지 시 카메라를 자동으로 재배치하지 않는다.
+        // (서브그래프 검색에서 선택 함수 중심으로 맞춘 뷰를 덮어쓰는 문제 방지)
         if (!hasSetInitialZoom.current) {
-          console.log('[EngineStop] Initial load detected - setting initial zoom');
           hasSetInitialZoom.current = true;
-          isUpdatingView.current = true;
-          graph.zoom(1.0, 300); // Start at 1.0x for better initial clarity
-          graph.centerAt(0, 0, 300);
-          setTimeout(() => {
-            isUpdatingView.current = false;
-            setViewMode('cluster');
-            setZoomLevel(1.0);
-            console.log('[EngineStop] Initial setup complete');
-          }, 100);
+          console.log('[EngineStop] Initial setup complete (no auto-centering)');
         }
       });
 
