@@ -474,6 +474,7 @@ function App() {
             element={
               <WarningsPage
                 mode={mode}
+                githubUrl={githubUrl}
                 backendGraphLoaded={backendGraphLoaded}
                 backendFunctions={backendFunctions}
                 backendWarnings={backendWarnings}

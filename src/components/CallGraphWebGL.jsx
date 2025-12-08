@@ -63,7 +63,13 @@ const generateClusterData = (nodes, links) => {
   };
 };
 
-const CallGraphWebGL = ({ searchFunctionName = '', graphData = null }) => {
+const CallGraphWebGL = ({
+  searchFunctionName = '',
+  graphData = null,
+  title = 'SQLite Call Graph',
+  onToggleOverview,
+  isOverviewOpen = false,
+}) => {
   console.log('[Component] ===== CallGraphWebGL RENDER =====');
 
   const [data, setData] = useState(null);
@@ -1391,7 +1397,7 @@ const CallGraphWebGL = ({ searchFunctionName = '', graphData = null }) => {
         </div>
       )}
 
-      {/* Toggle Button - Always visible */}
+      {/* Panel Toggle Button - icon only (local/backend 공통) */}
       <button
         onClick={() => setIsPanelOpen(prev => !prev)}
         style={{
@@ -1409,12 +1415,13 @@ const CallGraphWebGL = ({ searchFunctionName = '', graphData = null }) => {
           boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
           display: 'flex',
           alignItems: 'center',
-          gap: '8px'
+          justifyContent: 'center',
+          width: '36px',
+          height: '36px'
         }}
-        title={isPanelOpen ? 'Hide panel' : 'Show panel'}
+        title={isPanelOpen ? 'Hide call graph panel' : 'Show call graph panel'}
       >
         <span>{isPanelOpen ? '▼' : '▶'}</span>
-        <span>SQLite Call Graph</span>
       </button>
 
       {/* Panel Content - Toggleable */}
@@ -1427,9 +1434,36 @@ const CallGraphWebGL = ({ searchFunctionName = '', graphData = null }) => {
         padding: '10px',
         borderRadius: '5px',
         zIndex: 1000,
-        minWidth: '250px'
+        minWidth: '260px'
       }}>
-        <h3 style={{ margin: '0 0 10px 0' }}>SQLite Call Graph</h3>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '10px',
+          gap: '8px'
+        }}>
+          <h3 style={{ margin: 0 }}>{title}</h3>
+          {onToggleOverview && (
+            <button
+              type="button"
+              onClick={onToggleOverview}
+              style={{
+                padding: '4px 8px',
+                borderRadius: '4px',
+                border: '1px solid #d1d5db',
+                background: isOverviewOpen ? '#e5e7eb' : '#ffffff',
+                color: '#374151',
+                fontSize: '11px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {isOverviewOpen ? 'Hide overview' : 'Show overview'}
+            </button>
+          )}
+        </div>
 
         {/* View Mode Indicator */}
         <div style={{

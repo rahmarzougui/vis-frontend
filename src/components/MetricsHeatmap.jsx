@@ -80,7 +80,33 @@ const MetricsHeatmap = ({ functions }) => {
   return (
     <div className="w-full h-full flex flex-col">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-gray-900">Metrics Heatmap</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-gray-900">Metrics Heatmap</h3>
+          <div className="relative group">
+            <button
+              type="button"
+              className="w-4 h-4 flex items-center justify-center rounded-full border border-gray-300 text-[10px] text-gray-600 bg-white hover:bg-gray-50"
+              aria-label="Metrics 설명"
+            >
+              i
+            </button>
+            <div className="absolute left-0 top-full mt-1 hidden group-hover:block w-72 rounded-md border border-gray-200 bg-white p-3 text-[11px] text-gray-700 shadow-lg z-10">
+              <div className="font-semibold mb-1 text-gray-900">Metric 정의</div>
+              <ul className="space-y-1">
+                <li><span className="font-semibold">NLOC</span>: 함수의 유효 코드 라인 수 (Number of Lines of Code)</li>
+                <li><span className="font-semibold">CCN</span>: 순환 복잡도 (Cyclomatic Complexity)</li>
+                <li><span className="font-semibold">In degree</span>: 해당 함수를 호출하는 다른 함수 수</li>
+                <li><span className="font-semibold">Out degree</span>: 해당 함수가 호출하는 다른 함수 수</li>
+                <li>
+                  <span className="font-semibold">Warning score</span>: 심각도 가중치를 적용한 경고 점수<br />
+                  <span className="font-mono">
+                    Warning score = High × 3 + Medium × 2 + Low × 1
+                  </span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
         <div className="text-[11px] text-gray-500">
           컬럼별로 상대적인 크기를 색으로 비교합니다.
         </div>

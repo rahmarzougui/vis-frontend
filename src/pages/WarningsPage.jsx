@@ -106,6 +106,7 @@ const FILTER_CONFIG = {
 
 const WarningsPage = ({
   mode = 'local',
+  githubUrl = '',
   backendGraphLoaded = false,
   backendFunctions = null,
   backendWarnings = null,
@@ -139,12 +140,15 @@ const WarningsPage = ({
     prevModeRef.current = mode;
   }
 
+  const [isOverviewOpen, setIsOverviewOpen] = useState(false);
+
   // 모드 전환 시 선택 상태 및 오버뷰 창 초기화
   useEffect(() => {
     setManualSelection([]);
     setSelectedFunction(null);
     setOverviewWindowStates(new Map());
     setWindowPositions(new Map());
+    setIsOverviewOpen(false);
   }, [mode]);
 
   const functionsSource = usingBackend
@@ -512,7 +516,44 @@ const WarningsPage = ({
       return funcMeta ? { name: funcName, meta: funcMeta } : null;
     }).filter(Boolean);
   }, [manualSelection, functionsWithMetrics]);
-  
+
+  // Backend 모드에서 GitHub URL 기반 Call Graph 타이틀 생성
+  const graphTitle = useMemo(() => {
+    if (!usingBackend) return 'SQLite Call Graph';
+    if (!githubUrl || !githubUrl.trim()) return 'Backend Call Graph';
+    try {
+      const url = new URL(githubUrl.trim());
+      const repoPath = url.pathname
+        .replace(/\/$/, '')
+        .replace(/\.git$/, '');
+      const segments = repoPath.split('/').filter(Boolean);
+      const repoName = segments[segments.length - 1] || 'Repository';
+      return `${repoName} Call Graph`;
+    } catch {
+      return 'Backend Call Graph';
+    }
+  }, [usingBackend, githubUrl]);
+
+  const handleOverviewToggle = () => {
+    setIsOverviewOpen((prev) => {
+      const next = !prev;
+      if (next) {
+        // Overview 열릴 때 현재 선택된 함수들에 대해 윈도우 상태 초기화
+        setOverviewWindowStates(() => {
+          const map = new Map();
+          manualSelection.forEach((name) => {
+            map.set(name, 'maximized');
+          });
+          return map;
+        });
+      } else {
+        setOverviewWindowStates(new Map());
+        setWindowPositions(new Map());
+      }
+      return next;
+    });
+  };
+
   const selectedPresetMeta = PRESETS.find(preset => preset.id === selectedPreset) || {};
 
   return (
@@ -908,6 +949,7 @@ const WarningsPage = ({
                     setSelectedFunction(null);
                     setOverviewWindowStates(new Map());
                     setWindowPositions(new Map());
+                    setIsOverviewOpen(false);
                   }}
                   className="inline-flex items-center justify-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                 >
@@ -946,20 +988,20 @@ const WarningsPage = ({
                         setOverviewWindowStates(new Map());
                         setWindowPositions(new Map());
                         setCallGraphSearchName('');
+                        setIsOverviewOpen(false);
                       } else {
                         // Call graph -> Radar/Heatmap: 기존 선택 상태 초기화
                         setManualSelection([]);
                         setSelectedFunction(null);
                         setOverviewWindowStates(new Map());
                         setWindowPositions(new Map());
+                        setIsOverviewOpen(false);
                       }
                       return next;
                     });
                   }}
                   className={`inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
-                    graphViewMode === 'radar_heatmap'
-                      ? 'border-blue-500 text-blue-700 bg-blue-50 hover:bg-blue-100'
-                      : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                    'border-gray-300 text-gray-700 hover:bg-gray-50'
                   }`}
                 >
                   {graphViewMode === 'graph' ? 'radar/heatmap' : 'call graph'}
@@ -967,82 +1009,8 @@ const WarningsPage = ({
               </div>
             </div>
             <div className="flex-1 relative">
-              {/* Minimized Horizontal Bars - Positioned by selection order */}
-              {graphViewMode === 'graph' && manualSelection.map((funcName) => {
-                const funcMeta = functionsWithMetrics.find(f => f.name === funcName);
-                const windowState = overviewWindowStates.get(funcName);
-                if (!funcMeta || windowState !== 'minimized') return null;
-
-                // Edge filter button group: top(10) + height(41) + gap(9) = 60px minimum
-                const EDGE_FILTER_BUTTON_HEIGHT = 60;
-                const position = windowPositions.get(funcName) || { x: 0, y: EDGE_FILTER_BUTTON_HEIGHT };
-                // Enforce minimum Y to avoid overlap with edge filter buttons
-                const safeY = Math.max(position.y, EDGE_FILTER_BUTTON_HEIGHT);
-
-                const selectionIndex = manualSelection.indexOf(funcName);
-                const isFirst = selectionIndex === 0;
-                const isSecond = selectionIndex === 1;
-
-                // 첫 번째 선택 함수: 왼쪽 상단 고정, 두 번째: 오른쪽 상단 고정
-                const baseStyle = { top: `${safeY}px` };
-                const style =
-                  manualSelection.length === 1 || isFirst
-                    ? { ...baseStyle, left: '16px' }
-                    : isSecond
-                      ? { ...baseStyle, right: '16px' }
-                      : { ...baseStyle, right: '16px' };
-
-                return (
-                  <div
-                    key={funcName}
-                    className="absolute z-30 bg-white border border-gray-200 rounded-lg shadow-xl w-96 max-w-[calc(100%-2rem)]"
-                    style={style}
-                  >
-                    <div 
-                      className="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white cursor-move"
-                      onMouseDown={(e) => handleMouseDown(e, funcName)}
-                    >
-                      <div 
-                        className="flex items-center gap-4 flex-1 min-w-0"
-                        onClick={(e) => {
-                          // Only toggle if it wasn't a drag
-                          // Check both wasDragged map and current draggedWindow state
-                          const hadDragged = wasDragged.get(funcName) || 
-                                           (draggedWindow?.funcName === funcName && draggedWindow?.hasDragged);
-                          if (!hadDragged) {
-                            setOverviewWindowStates(prev => {
-                              const newMap = new Map(prev);
-                              newMap.set(funcName, 'maximized');
-                              return newMap;
-                            });
-                          }
-                          e.stopPropagation();
-                        }}
-                      >
-                        <h3 className="text-sm font-semibold text-gray-900 truncate">{funcMeta.name}</h3>
-                      </div>
-                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
-                        <button
-                          onClick={() => {
-                            setOverviewWindowStates(prev => {
-                              const newMap = new Map(prev);
-                              newMap.set(funcName, 'maximized');
-                              return newMap;
-                            });
-                          }}
-                          className="text-gray-400 hover:text-gray-600 text-sm px-2 py-1 hover:bg-gray-100 rounded transition-colors"
-                          title="Expand"
-                        >
-                          ▲
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* Maximized Floating Windows - Draggable */}
-              {graphViewMode === 'graph' && manualSelection.map((funcName) => {
+              {/* Function Overview Windows - 카드 형태로만 표시 (막대기 제거) */}
+              {graphViewMode === 'graph' && isOverviewOpen && manualSelection.map((funcName) => {
                 const funcMeta = functionsWithMetrics.find(f => f.name === funcName);
                 const windowState = overviewWindowStates.get(funcName);
                 if (!funcMeta || windowState !== 'maximized') return null;
@@ -1264,6 +1232,9 @@ const WarningsPage = ({
                           key={`${mode}-${manualSelection[0]}`}
                           searchFunctionName={modeJustChanged ? '' : manualSelection[0]}
                           graphData={mode === 'backend' ? backendCg : null}
+                          title={graphTitle}
+                          onToggleOverview={handleOverviewToggle}
+                          isOverviewOpen={isOverviewOpen}
                         />
                       </div>
                       <div className="w-1/2 h-full">
@@ -1271,6 +1242,9 @@ const WarningsPage = ({
                           key={`${mode}-${manualSelection[1]}`}
                           searchFunctionName={modeJustChanged ? '' : manualSelection[1]}
                           graphData={mode === 'backend' ? backendCg : null}
+                          title={graphTitle}
+                          onToggleOverview={handleOverviewToggle}
+                          isOverviewOpen={isOverviewOpen}
                         />
                       </div>
                     </div>
@@ -1285,6 +1259,9 @@ const WarningsPage = ({
                             : callGraphSearchName
                       }
                       graphData={mode === 'backend' ? backendCg : null}
+                      title={graphTitle}
+                      onToggleOverview={handleOverviewToggle}
+                      isOverviewOpen={isOverviewOpen}
                     />
                   )
                 ) : usingBackend && (!backendFunctions || backendFunctions.length === 0) ? (
