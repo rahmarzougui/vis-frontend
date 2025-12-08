@@ -1447,7 +1447,13 @@ const CallGraphWebGL = ({
           {onToggleOverview && (
             <button
               type="button"
-              onClick={onToggleOverview}
+              onClick={() => {
+                // Show overview가 열릴 때 search 패널이 겹치지 않도록 닫기
+                if (!isOverviewOpen && isPanelOpen) {
+                  setIsPanelOpen(false);
+                }
+                onToggleOverview(searchFunctionName || null);
+              }}
               style={{
                 padding: '4px 8px',
                 borderRadius: '4px',

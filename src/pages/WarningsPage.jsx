@@ -140,15 +140,12 @@ const WarningsPage = ({
     prevModeRef.current = mode;
   }
 
-  const [isOverviewOpen, setIsOverviewOpen] = useState(false);
-
   // 모드 전환 시 선택 상태 및 오버뷰 창 초기화
   useEffect(() => {
     setManualSelection([]);
     setSelectedFunction(null);
     setOverviewWindowStates(new Map());
     setWindowPositions(new Map());
-    setIsOverviewOpen(false);
   }, [mode]);
 
   const functionsSource = usingBackend
@@ -533,24 +530,29 @@ const WarningsPage = ({
       return 'Backend Call Graph';
     }
   }, [usingBackend, githubUrl]);
-
-  const handleOverviewToggle = () => {
-    setIsOverviewOpen((prev) => {
-      const next = !prev;
-      if (next) {
-        // Overview 열릴 때 현재 선택된 함수들에 대해 윈도우 상태 초기화
-        setOverviewWindowStates(() => {
-          const map = new Map();
-          manualSelection.forEach((name) => {
-            map.set(name, 'maximized');
-          });
-          return map;
+  const handleOverviewToggle = (funcName) => {
+    if (!funcName) return;
+    setOverviewWindowStates((prev) => {
+      const map = new Map(prev);
+      const current = map.get(funcName);
+      if (current === 'maximized') {
+        map.delete(funcName);
+        setWindowPositions((prevPos) => {
+          const nextPos = new Map(prevPos);
+          nextPos.delete(funcName);
+          return nextPos;
         });
       } else {
-        setOverviewWindowStates(new Map());
-        setWindowPositions(new Map());
+        map.set(funcName, 'maximized');
+        setWindowPositions((prevPos) => {
+          const nextPos = new Map(prevPos);
+          if (!nextPos.has(funcName)) {
+            nextPos.set(funcName, { x: 0, y: 68 });
+          }
+          return nextPos;
+        });
       }
-      return next;
+      return map;
     });
   };
 
@@ -949,7 +951,6 @@ const WarningsPage = ({
                     setSelectedFunction(null);
                     setOverviewWindowStates(new Map());
                     setWindowPositions(new Map());
-                    setIsOverviewOpen(false);
                   }}
                   className="inline-flex items-center justify-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                 >
@@ -988,14 +989,12 @@ const WarningsPage = ({
                         setOverviewWindowStates(new Map());
                         setWindowPositions(new Map());
                         setCallGraphSearchName('');
-                        setIsOverviewOpen(false);
                       } else {
                         // Call graph -> Radar/Heatmap: 기존 선택 상태 초기화
                         setManualSelection([]);
                         setSelectedFunction(null);
                         setOverviewWindowStates(new Map());
                         setWindowPositions(new Map());
-                        setIsOverviewOpen(false);
                       }
                       return next;
                     });
@@ -1010,7 +1009,7 @@ const WarningsPage = ({
             </div>
             <div className="flex-1 relative">
               {/* Function Overview Windows - 카드 형태로만 표시 (막대기 제거) */}
-              {graphViewMode === 'graph' && isOverviewOpen && manualSelection.map((funcName) => {
+              {graphViewMode === 'graph' && manualSelection.map((funcName) => {
                 const funcMeta = functionsWithMetrics.find(f => f.name === funcName);
                 const windowState = overviewWindowStates.get(funcName);
                 if (!funcMeta || windowState !== 'maximized') return null;
@@ -1228,24 +1227,28 @@ const WarningsPage = ({
                   ) : (modeJustChanged ? 0 : manualSelection.length) === 2 ? (
                     <div className="w-full h-full flex">
                       <div className="w-1/2 h-full border-r border-gray-200">
+                        {manualSelection[0] && (
                         <CallGraphWebGL
                           key={`${mode}-${manualSelection[0]}`}
                           searchFunctionName={modeJustChanged ? '' : manualSelection[0]}
                           graphData={mode === 'backend' ? backendCg : null}
                           title={graphTitle}
                           onToggleOverview={handleOverviewToggle}
-                          isOverviewOpen={isOverviewOpen}
+                          isOverviewOpen={overviewWindowStates.get(manualSelection[0]) === 'maximized'}
                         />
+                        )}
                       </div>
                       <div className="w-1/2 h-full">
+                        {manualSelection[1] && (
                         <CallGraphWebGL
                           key={`${mode}-${manualSelection[1]}`}
                           searchFunctionName={modeJustChanged ? '' : manualSelection[1]}
                           graphData={mode === 'backend' ? backendCg : null}
                           title={graphTitle}
                           onToggleOverview={handleOverviewToggle}
-                          isOverviewOpen={isOverviewOpen}
+                          isOverviewOpen={overviewWindowStates.get(manualSelection[1]) === 'maximized'}
                         />
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -1261,7 +1264,11 @@ const WarningsPage = ({
                       graphData={mode === 'backend' ? backendCg : null}
                       title={graphTitle}
                       onToggleOverview={handleOverviewToggle}
-                      isOverviewOpen={isOverviewOpen}
+                      isOverviewOpen={
+                        (manualSelection.length === 1
+                          ? overviewWindowStates.get(manualSelection[0])
+                          : overviewWindowStates.get(callGraphSearchName || '')) === 'maximized'
+                      }
                     />
                   )
                 ) : usingBackend && (!backendFunctions || backendFunctions.length === 0) ? (
