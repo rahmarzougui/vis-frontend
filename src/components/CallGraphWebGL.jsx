@@ -84,6 +84,7 @@ const CallGraphWebGL = ({
   const [rawData, setRawData] = useState(null); // Store original data for switching
   const [isTransitioning, setIsTransitioning] = useState(false); // Loading state for view transitions
   const [hoverNode, setHoverNode] = useState(null); // Currently hovered node
+  const [nodeContextMenu, setNodeContextMenu] = useState(null); // { x, y, name }
   const [isSubgraphMode, setIsSubgraphMode] = useState(false); // Track if showing subgraph
   const [subgraphData, setSubgraphData] = useState(null); // Store extracted subgraph
   const [isPanelOpen, setIsPanelOpen] = useState(false); // Toggle for SQLite Call Graph panel
@@ -946,6 +947,10 @@ const CallGraphWebGL = ({
         }
       })
       .onNodeClick((node) => {
+        // Any left-click hides the context menu
+        if (nodeContextMenu) {
+          setNodeContextMenu(null);
+        }
         const currentMode = viewModeRef.current;
         console.log('[NodeClick] Node clicked:', node.id, 'viewMode:', currentMode, 'isCluster:', node.isCluster);
         if (node.isCluster && currentMode === 'cluster') {
@@ -963,6 +968,23 @@ const CallGraphWebGL = ({
             console.log('[NodeClick] Settling complete - hiding loading screen');
           }, 6000);
         }
+      })
+      .onNodeRightClick((node, event) => {
+        if (!node || !containerRef.current) return;
+        event.preventDefault();
+
+        const rect = containerRef.current.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+
+        const name = node.name || node.id || '';
+        if (!name) return;
+
+        setNodeContextMenu({
+          x,
+          y,
+          name,
+        });
       })
       .onNodeHover((node) => {
         // Only apply hover highlighting in detail view (no hover in cluster view)
@@ -1353,6 +1375,76 @@ const CallGraphWebGL = ({
             </div>
           </div>
         </>
+      )}
+
+      {/* Node context menu for copying function name */}
+      {nodeContextMenu && (
+        <div
+          style={{
+            position: 'absolute',
+            top: nodeContextMenu.y,
+            left: nodeContextMenu.x,
+            transform: 'translateY(-100%)',
+            background: 'white',
+            border: '1px solid #e5e7eb',
+            borderRadius: '6px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            padding: '6px 10px',
+            zIndex: 2100,
+            minWidth: '160px',
+          }}
+        >
+          <div
+            style={{
+              fontSize: '11px',
+              color: '#4b5563',
+              marginBottom: '4px',
+              maxWidth: '220px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+            title={nodeContextMenu.name}
+          >
+            {nodeContextMenu.name}
+          </div>
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                  await navigator.clipboard.writeText(nodeContextMenu.name);
+                } else {
+                  const textarea = document.createElement('textarea');
+                  textarea.value = nodeContextMenu.name;
+                  textarea.style.position = 'fixed';
+                  textarea.style.opacity = '0';
+                  document.body.appendChild(textarea);
+                  textarea.focus();
+                  textarea.select();
+                  document.execCommand('copy');
+                  document.body.removeChild(textarea);
+                }
+              } catch (e) {
+                console.warn('[ContextMenu] Failed to copy name:', e);
+              } finally {
+                setNodeContextMenu(null);
+              }
+            }}
+            style={{
+              width: '100%',
+              padding: '4px 6px',
+              fontSize: '12px',
+              borderRadius: '4px',
+              border: '1px solid #d1d5db',
+              background: '#f3f4f6',
+              color: '#111827',
+              cursor: 'pointer',
+            }}
+          >
+            Copy function name
+          </button>
+        </div>
       )}
 
       {/* Edge Filter Toggle - Only visible in subgraph mode */}

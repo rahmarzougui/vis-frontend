@@ -130,6 +130,7 @@ const WarningsPage = ({
   const [graphViewMode, setGraphViewMode] = useState('graph'); // 'graph' | 'radar_heatmap'
   const [selectionHistory, setSelectionHistory] = useState([]); // Array of function names (recent selections)
   const [isHistoryMode, setIsHistoryMode] = useState(false); // true = show selection history instead of filtered list
+  const [graphResetCounter, setGraphResetCounter] = useState(0); // Force CallGraphWebGL remount on reset
 
   const usingBackend = mode === 'backend';
 
@@ -951,6 +952,8 @@ const WarningsPage = ({
                     setSelectedFunction(null);
                     setOverviewWindowStates(new Map());
                     setWindowPositions(new Map());
+                    setCallGraphSearchName('');
+                    setGraphResetCounter((prev) => prev + 1);
                   }}
                   className="inline-flex items-center justify-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                 >
@@ -1227,33 +1230,33 @@ const WarningsPage = ({
                   ) : (modeJustChanged ? 0 : manualSelection.length) === 2 ? (
                     <div className="w-full h-full flex">
                       <div className="w-1/2 h-full border-r border-gray-200">
-                        {manualSelection[0] && (
                         <CallGraphWebGL
-                          key={`${mode}-${manualSelection[0]}`}
+                          key={`${mode}-${graphResetCounter}-${manualSelection[0] || 'left'}`}
                           searchFunctionName={modeJustChanged ? '' : manualSelection[0]}
                           graphData={mode === 'backend' ? backendCg : null}
                           title={graphTitle}
                           onToggleOverview={handleOverviewToggle}
                           isOverviewOpen={overviewWindowStates.get(manualSelection[0]) === 'maximized'}
                         />
-                        )}
                       </div>
                       <div className="w-1/2 h-full">
-                        {manualSelection[1] && (
                         <CallGraphWebGL
-                          key={`${mode}-${manualSelection[1]}`}
+                          key={`${mode}-${graphResetCounter}-${manualSelection[1] || 'right'}`}
                           searchFunctionName={modeJustChanged ? '' : manualSelection[1]}
                           graphData={mode === 'backend' ? backendCg : null}
                           title={graphTitle}
                           onToggleOverview={handleOverviewToggle}
                           isOverviewOpen={overviewWindowStates.get(manualSelection[1]) === 'maximized'}
                         />
-                        )}
                       </div>
                     </div>
                   ) : (
                     <CallGraphWebGL
-                      key={mode === 'backend' ? 'backend-single' : 'local-single'}
+                      key={
+                        mode === 'backend'
+                          ? `backend-single-${graphResetCounter}`
+                          : `local-single-${graphResetCounter}`
+                      }
                       searchFunctionName={
                         modeJustChanged
                           ? ''
