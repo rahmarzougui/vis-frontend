@@ -368,6 +368,121 @@ Backend Mode에서 `Run Analysis`를 누르면 다음 순서를 따릅니다.
 
 ---
 
+## UI 세부 동작 및 최근 변경 사항
+
+### Backend 모드에서의 추가 예외 처리
+
+- **GitHub URL 검증**
+  - `Run Analysis` 실행 전, 입력한 URL이 유효한 GitHub 저장소 주소인지 검사합니다.
+  - 허용되는 형식:
+    - `https://github.com/owner/repo`
+    - `https://github.com/owner/repo.git`
+  - 형식이 잘못된 경우:
+    - 파이프라인을 시작하지 않고, 상단 Backend 에러 오버레이에 다음과 유사한 메시지가 표시됩니다.
+      - `유효한 GitHub 저장소 URL을 입력하세요. 예: https://github.com/owner/repo 또는 https://github.com/owner/repo.git`
+
+- **Radar/Heatmap 모드에서 Backend 데이터 유효성 검사**
+  - Backend 모드에서 Radar/Heatmap 뷰로 전환 시, 다음 두 데이터가 모두 존재해야 합니다.
+    - `backendFunctions` (functions 데이터)
+    - `backendWarnings` (warnings 데이터)
+  - 둘 중 하나라도 비어 있으면:
+    - 모드를 Radar/Heatmap으로 전환하지 않고,
+    - 화면 상단에 토스트 에러가 표시됩니다.
+      - `Backend 모드에서 Radar/Heatmap을 사용하려면 functions 및 warnings 데이터가 필요합니다. 먼저 GitHub 저장소 분석을 완료해 주세요.`
+
+### Call Graph 패널 및 제목
+
+- **Call Graph 패널 토글**
+  - `CallGraphWebGL` 좌측 상단에 작은 아이콘 버튼이 있습니다.
+    - `▶` / `▼` 아이콘만으로 패널을 열고 닫습니다 (텍스트 라벨 없음).
+    - Local/Backend 모드 모두 같은 방식으로 동작합니다.
+
+- **패널 내부 구조**
+  - 상단 타이틀: 현재 Call Graph의 데이터 소스를 나타냅니다.
+    - Local Mode: `SQLite Call Graph`
+    - Backend Mode:
+      - GitHub URL이 `https://github.com/DaveGamble/cJSON.git`인 경우 → `cJSON Call Graph`
+      - `.git` 확장자를 제거하고 마지막 path 조각(`repo` 이름)만 추출해 타이틀에 사용합니다.
+      - URL이 파싱되지 않으면 `Backend Call Graph`로 표시됩니다.
+  - 타이틀 우측:
+    - **Show overview / Hide overview** 버튼
+      - 클릭하면 선택한 함수들에 대한 Function Overview 카드(오른쪽 패널 상단 부근에 띄워지는 상세 카드)를 열거나 닫습니다.
+      - 카드가 열린 상태에서는 `Hide overview`, 닫힌 상태에서는 `Show overview`로 표시됩니다.
+      - 두 개의 함수 비교 모드에서는 왼쪽/오른쪽 Call Graph 각각에 대해 독립적으로 토글됩니다.
+        - 왼쪽 그래프의 버튼은 첫 번째 함수의 overview만,
+        - 오른쪽 그래프의 버튼은 두 번째 함수의 overview만 제어합니다.
+
+- **그래프 초기화 버튼**
+  - Warnings 페이지 우측 상단의 `그래프 초기화` 버튼:
+    - 현재 선택된 함수들(`manualSelection`)과 `selectedFunction`, overview 창 상태, Call Graph 검색 이름 등을 모두 초기화합니다.
+    - 내부적으로 `CallGraphWebGL`을 다시 마운트하여:
+      - 서브그래프 검색 상태, `isSubgraphMode`, `searchTerm` 등이 전부 초기화되고,
+      - **가장 처음 화면과 동일한 전체 콜 그래프**가 다시 렌더링됩니다.
+
+### Function Overview 동작
+
+- **Overview 카드 열기**
+  - Call graph 모드에서 함수들을 선택한 상태에서, Call Graph 패널 헤더의 `Show overview` 버튼을 누르면,
+    - 선택된 함수 각각에 대해 “Function Overview” 카드가 오른쪽 패널 안에 떠서 상세 정보를 표시합니다.
+  - 카드 내용:
+    - 함수명, complexity, call count, warningCount, degree, file path
+    - Warning Breakdown (High/Medium/Low 개수)
+    - 최근 경고 목록 (최대 5개)
+
+- **카드 위치 및 정렬**
+  - 두 개의 함수를 선택한 경우:
+    - 첫 번째 함수의 overview 카드는 화면의 왼쪽 상단 영역에,
+    - 두 번째 함수의 overview 카드는 화면의 오른쪽 상단 영역에 기본 배치됩니다.
+  - 카드는 드래그로 세로 방향으로 위치를 조정할 수 있습니다.
+
+- **카드 닫기와 버튼 상태**
+  - 카드 상단의 `▼` 버튼으로 overview를 최소화하면:
+    - 해당 함수의 overview 상태가 `'maximized'` → `'minimized'`로 바뀌며 카드가 사라집니다.
+    - Call Graph 패널의 버튼은 자동으로 `Show overview` 상태로 돌아갑니다.
+
+### Call Graph 검색 / 센터링 동작
+
+- **함수 검색 및 서브그래프**
+  - Call Graph 패널에서 함수명을 입력하고 `Enter` 또는 `Search` 버튼을 누르면:
+    - 해당 함수와 1-hop 이웃 노드(호출/피호출 관계)를 포함한 서브그래프를 추출합니다.
+    - 서브그래프 모드에서는:
+      - 선택된 함수와 이웃 노드들만 표시되며,
+      - 상단 Edge Filter(All / Incoming / Outgoing)로 서브그래프 내의 링크를 필터링할 수 있습니다.
+  - 매칭되는 함수가 없으면:
+    - `alert("No functions found matching \"...\"")`가 표시됩니다.
+
+- **선택된 함수 중심으로 뷰 맞추기**
+  - 프리셋 함수 목록에서 함수 2개를 선택한 비교 모드에서는,
+    - 왼쪽 Call Graph는 첫 번째 선택 함수,
+    - 오른쪽 Call Graph는 두 번째 선택 함수
+    를 기준으로 서브그래프를 그립니다.
+  - 서브그래프 레이아웃이 안정된 뒤:
+    - 선택된 함수 노드가 캔버스 중앙에 오도록 `centerAt` + `zoom`을 수행합니다.
+    - 이후 `onEngineStop`에서 자동으로 카메라를 다시 움직이지 않도록 하여, 뷰가 갑자기 튀지 않고 선택 함수가 중앙에 유지됩니다.
+
+### 노드 우클릭 컨텍스트 메뉴 (함수명 복사)
+
+- Call Graph에서 개별 함수 노드 위에서 마우스를 **우클릭**하면,
+  - 노드 위치 근처에 작은 컨텍스트 메뉴가 나타나고,
+  - 함수명이 한 줄로 표시된 뒤 `Copy function name` 버튼이 제공됩니다.
+- 버튼을 클릭하면:
+  - 브라우저가 지원하는 경우 `navigator.clipboard.writeText`를 사용해 함수명을 클립보드에 복사하고,
+  - 그렇지 않은 환경에서는 숨겨진 `<textarea>`를 이용해 `document.execCommand('copy')`로 복사합니다.
+  - 복사 후 컨텍스트 메뉴는 자동으로 닫힙니다.
+
+### Metrics Heatmap 툴팁 및 Warning score 정의
+
+- Radar/Heatmap 모드에서 우측에 표시되는 **Metrics Heatmap** 헤더 옆에는 `i` 아이콘이 있습니다.
+  - 아이콘 위에 마우스를 올리면 각 메트릭의 정의를 설명하는 툴팁이 나타납니다.
+    - `NLOC`: 함수의 유효 코드 라인 수 (Number of Lines of Code)
+    - `CCN`: 순환 복잡도 (Cyclomatic Complexity)
+    - `In degree`: 해당 함수를 호출하는 다른 함수 수
+    - `Out degree`: 해당 함수가 호출하는 다른 함수 수
+    - `Warning score`: 심각도 가중치를 적용한 경고 점수
+      - 공식:
+        - `Warning score = High × 3 + Medium × 2 + Low × 1`
+  - Heatmap 셀 색상은 각 메트릭별 상대적인 크기에 따라 랭크 기반 팔레트로 결정됩니다.
+
 ## 프로젝트 구조
 
 ```
