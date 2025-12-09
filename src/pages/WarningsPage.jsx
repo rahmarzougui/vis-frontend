@@ -611,7 +611,46 @@ const WarningsPage = ({
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <div>
-                      <h2 className="text-lg font-semibold text-gray-900">탐색 기준 Preset</h2>
+                      <div className="flex items-center gap-1">
+                        <h2 className="text-lg font-semibold text-gray-900">탐색 기준 Preset</h2>
+                        <div className="relative group inline-block">
+                          <button
+                            type="button"
+                            className="w-4 h-4 flex items-center justify-center rounded-full border border-gray-300 text-[10px] text-gray-500 bg-white hover:bg-gray-100"
+                            aria-label="탐색 기준 Preset 정렬 기준 안내"
+                          >
+                            i
+                          </button>
+                          <div className="fixed top-24 left-6 w-64 rounded-lg border border-gray-200 bg-white shadow-lg p-3 text-[11px] text-gray-700 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity pointer-events-none">
+                            <div className="font-semibold text-gray-900 mb-1">
+                              Preset별 정렬 기준
+                            </div>
+                            <div className="mb-1">
+                              <span className="font-semibold text-xs text-blue-700">High Complexity</span>
+                              <ul className="list-disc list-inside mt-0.5">
+                                <li>최소 경고 수와 최소 degree 조건을 만족하는 함수만 표시됩니다.</li>
+                                <li>집중할 심각도(High/Medium/Low)를 선택하면 해당 심각도 경고가 1개 이상 있는 함수만 남습니다.</li>
+                                <li>이후 CCN(복잡도)이 높은 함수부터 내림차순으로 정렬됩니다.</li>
+                              </ul>
+                            </div>
+                            <div className="mb-1">
+                              <span className="font-semibold text-xs text-red-700">Risky Warnings</span>
+                              <ul className="list-disc list-inside mt-0.5">
+                                <li>최소 복잡도와 최소 경고 수 조건을 만족하는 함수만 표시됩니다.</li>
+                                <li>High 심각도 경고 개수가 많은 함수일수록 위에 오도록 내림차순으로 정렬됩니다.</li>
+                              </ul>
+                            </div>
+                            <div>
+                              <span className="font-semibold text-xs text-green-700">Easy Fixes</span>
+                              <ul className="list-disc list-inside mt-0.5">
+                                <li>낮은 심각도(Low) 경고 개수가 설정한 Easy-to-fix 기준 이상인 함수만 표시됩니다.</li>
+                                <li>최대 복잡도를 제한하면 그 값 이하의 함수만 남습니다.</li>
+                                <li>Easy-to-fix 경고 개수가 많은 함수부터 내림차순으로 정렬됩니다.</li>
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                       <p className="text-sm text-gray-500">상황에 맞게 탐색 전략을 선택하세요</p>
                     </div>
                     <button
