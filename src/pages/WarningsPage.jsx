@@ -267,6 +267,8 @@ const WarningsPage = ({
     return data;
   }, [functionsWithMetrics, selectedPreset, filters, functionSearchQuery]);
 
+  const isEasyPreset = selectedPreset === 'easy';
+
   const handlePresetChange = (preset) => {
     setSelectedPreset(preset);
     setFilters(getDefaultFilters(preset));
@@ -869,9 +871,13 @@ const WarningsPage = ({
                                 D {func.degree}
                               </div>
                               <div className={`rounded px-1.5 py-0.5 text-[9px] ${
-                                isInSubgraphSelection || isSelectedForOverview
-                                  ? 'bg-gray-100 text-gray-700'
-                                  : 'bg-gray-50 text-gray-600'
+                                isEasyPreset
+                                  ? (isInSubgraphSelection || isSelectedForOverview
+                                      ? 'bg-white text-gray-900 border border-gray-300'
+                                      : 'bg-white text-gray-900 border border-gray-200')
+                                  : isInSubgraphSelection || isSelectedForOverview
+                                    ? 'bg-gray-100 text-gray-700'
+                                    : 'bg-gray-50 text-gray-600'
                               }`}>
                                 E {func.easyFixCount}
                               </div>
