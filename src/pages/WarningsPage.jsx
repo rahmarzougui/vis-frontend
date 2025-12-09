@@ -924,7 +924,7 @@ const WarningsPage = ({
                     >
                       !
                     </button>
-                    <div className="absolute left-0 md:left-auto md:right-0 top-full mt-2 hidden w-72 rounded-lg border border-yellow-200 bg-white p-3 text-xs text-gray-700 shadow-lg group-hover:flex group-focus-within:flex z-20">
+                    <div className="fixed top-28 right-8 hidden w-72 rounded-lg border border-yellow-200 bg-white p-3 text-xs text-gray-700 shadow-lg group-hover:flex group-focus-within:flex z-50 pointer-events-none">
                       <div className="font-semibold mb-1 text-yellow-800">Refresh notice</div>
                       <p className="leading-snug">
                         Refreshing or closing the page will clear the current backend call graph and analysis data. 
@@ -943,7 +943,7 @@ const WarningsPage = ({
                     >
                       ↓
                     </button>
-                    <div className="absolute left-0 md:left-auto md:right-0 top-full mt-2 hidden w-72 rounded-lg border border-blue-200 bg-white p-3 text-xs text-gray-700 shadow-lg group-hover:flex group-focus-within:flex z-20">
+                    <div className="fixed top-36 right-8 hidden w-72 rounded-lg border border-blue-200 bg-white p-3 text-xs text-gray-700 shadow-lg group-hover:flex group-focus-within:flex z-50 pointer-events-none">
                       <div className="font-semibold mb-1 text-blue-800">Backend data viewer</div>
                       <p className="leading-snug">
                         Click to toggle the viewer for backend <code>cg</code>, <code>functions</code>, and <code>warnings</code> JSON. 
