@@ -901,28 +901,28 @@ const WarningsPage = ({
                             </div>
 
                             <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
-                              <div className={`rounded px-2 py-0.5 text-[10px] font-medium ${
+                              <div className={`rounded px-2 py-0.5 text-[10px] font-medium border-2 ${
                                 isInSubgraphSelection || isSelectedForOverview
-                                  ? 'bg-gray-100 text-gray-700'
-                                  : 'bg-gray-50 text-gray-600'
+                                  ? 'bg-gray-100 text-gray-700 border-gray-300'
+                                  : 'bg-gray-50 text-gray-600 border-gray-200'
                               }`}>
                                 경고 {func.warningCount}
                               </div>
-                              <div className={`rounded px-2 py-0.5 text-[10px] font-medium ${
+                              <div className={`rounded px-2 py-0.5 text-[10px] font-medium border-2 ${
                                 isInSubgraphSelection || isSelectedForOverview
-                                  ? 'bg-gray-100 text-gray-700'
-                                  : 'bg-gray-50 text-gray-600'
+                                  ? 'bg-gray-100 text-gray-700 border-gray-300'
+                                  : 'bg-gray-50 text-gray-600 border-gray-200'
                               }`}>
                                 D {func.degree}
                               </div>
-                              <div className={`rounded px-2 py-0.5 text-[10px] font-bold ${
+                              <div className={`rounded px-2 py-0.5 text-[10px] font-bold border-2 ${
                                 isEasySort
                                   ? (isInSubgraphSelection || isSelectedForOverview
-                                      ? 'bg-green-200 text-green-900 border-2 border-green-400'
-                                      : 'bg-green-100 text-green-900 border-2 border-green-300')
+                                      ? 'bg-green-200 text-green-900 border-green-400'
+                                      : 'bg-green-100 text-green-900 border-green-300')
                                   : isInSubgraphSelection || isSelectedForOverview
-                                    ? 'bg-gray-100 text-gray-700'
-                                    : 'bg-gray-50 text-gray-600'
+                                    ? 'bg-gray-100 text-gray-700 border-gray-300'
+                                    : 'bg-gray-50 text-gray-600 border-gray-200'
                               }`}>
                                 E {func.easyFixCount}
                               </div>
