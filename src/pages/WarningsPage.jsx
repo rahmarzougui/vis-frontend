@@ -782,6 +782,34 @@ const WarningsPage = ({
                         </span>
                       )}
                     </div>
+                    {/* Sorting Indicator */}
+                    {!isHistoryMode && (
+                      <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-semibold text-blue-900">정렬 기준:</span>
+                          <span className="text-[10px] text-blue-800">
+                            {selectedPreset === 'complexity' && (
+                              <span className="inline-flex items-center gap-1">
+                                <span className="px-1.5 py-0.5 bg-blue-200 text-blue-900 rounded font-bold text-[10px]">CC (복잡도)</span>
+                                <span className="text-blue-600">높은 순</span>
+                              </span>
+                            )}
+                            {selectedPreset === 'severity' && (
+                              <span className="inline-flex items-center gap-1">
+                                <span className="px-1.5 py-0.5 bg-red-200 text-red-900 rounded font-bold text-[10px]">H (High 경고)</span>
+                                <span className="text-blue-600">많은 순</span>
+                              </span>
+                            )}
+                            {selectedPreset === 'easy' && (
+                              <span className="inline-flex items-center gap-1">
+                                <span className="px-1.5 py-0.5 bg-green-200 text-green-900 rounded font-bold text-[10px]">E (Easy Fix)</span>
+                                <span className="text-blue-600">많은 순</span>
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                     <div className="space-y-1.5 max-h-[600px] overflow-y-auto">
                       {mode === 'backend' && (!backendFunctions || backendFunctions.length === 0) && (
                         <div className="text-sm text-gray-400 border border-dashed border-gray-200 rounded-lg p-4 text-center mb-2">
@@ -802,6 +830,11 @@ const WarningsPage = ({
                         const isInSubgraphSelection = manualSelection.includes(func.name);
                         const isSelectedForOverview = selectedFunction === func.name;
                         const selectionIndex = manualSelection.indexOf(func.name);
+                        
+                        // Determine which metric is being used for sorting
+                        const isComplexitySort = selectedPreset === 'complexity';
+                        const isSeveritySort = selectedPreset === 'severity';
+                        const isEasySort = selectedPreset === 'easy';
                         
                         return (
                           <div
@@ -840,14 +873,26 @@ const WarningsPage = ({
                                 </p>
                               </div>
                               <div className="flex items-center gap-2 flex-shrink-0">
-                                <div className="text-right">
-                                  <div className={`text-[9px] font-medium ${
-                                    isInSubgraphSelection || isSelectedForOverview ? 'text-gray-600' : 'text-gray-400'
+                                <div className={`text-right px-2 py-1 rounded ${
+                                  isComplexitySort
+                                    ? 'bg-blue-100 border-2 border-blue-400'
+                                    : ''
+                                }`}>
+                                  <div className={`text-[10px] font-medium ${
+                                    isComplexitySort 
+                                      ? 'text-blue-700 font-bold' 
+                                      : isInSubgraphSelection || isSelectedForOverview 
+                                        ? 'text-gray-600' 
+                                        : 'text-gray-400'
                                   }`}>
                                     CC
                                   </div>
                                   <div className={`text-sm font-bold ${
-                                    isInSubgraphSelection || isSelectedForOverview ? 'text-gray-900' : 'text-gray-900'
+                                    isComplexitySort
+                                      ? 'text-blue-900'
+                                      : isInSubgraphSelection || isSelectedForOverview 
+                                        ? 'text-gray-900' 
+                                        : 'text-gray-900'
                                   }`}>
                                     {func.complexity}
                                   </div>
@@ -856,25 +901,25 @@ const WarningsPage = ({
                             </div>
 
                             <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
-                              <div className={`rounded px-1.5 py-0.5 text-[9px] ${
+                              <div className={`rounded px-2 py-0.5 text-[10px] font-medium ${
                                 isInSubgraphSelection || isSelectedForOverview
                                   ? 'bg-gray-100 text-gray-700'
                                   : 'bg-gray-50 text-gray-600'
                               }`}>
                                 경고 {func.warningCount}
                               </div>
-                              <div className={`rounded px-1.5 py-0.5 text-[9px] ${
+                              <div className={`rounded px-2 py-0.5 text-[10px] font-medium ${
                                 isInSubgraphSelection || isSelectedForOverview
                                   ? 'bg-gray-100 text-gray-700'
                                   : 'bg-gray-50 text-gray-600'
                               }`}>
                                 D {func.degree}
                               </div>
-                              <div className={`rounded px-1.5 py-0.5 text-[9px] ${
-                                isEasyPreset
+                              <div className={`rounded px-2 py-0.5 text-[10px] font-bold ${
+                                isEasySort
                                   ? (isInSubgraphSelection || isSelectedForOverview
-                                      ? 'bg-white text-gray-900 border border-gray-300'
-                                      : 'bg-white text-gray-900 border border-gray-200')
+                                      ? 'bg-green-200 text-green-900 border-2 border-green-400'
+                                      : 'bg-green-100 text-green-900 border-2 border-green-300')
                                   : isInSubgraphSelection || isSelectedForOverview
                                     ? 'bg-gray-100 text-gray-700'
                                     : 'bg-gray-50 text-gray-600'
@@ -885,13 +930,17 @@ const WarningsPage = ({
                                 func.severityCounts[level] ? (
                                   <span
                                     key={level}
-                                    className={`inline-flex items-center rounded px-1 py-0.5 text-[9px] border ${
-                                      isInSubgraphSelection || isSelectedForOverview
-                                        ? 'border-gray-300 text-gray-700'
-                                        : 'border-gray-200 text-gray-600'
+                                    className={`inline-flex items-center rounded px-2 py-0.5 text-[10px] font-bold border-2 ${
+                                      isSeveritySort && level === 'High'
+                                        ? (isInSubgraphSelection || isSelectedForOverview
+                                            ? 'bg-red-200 text-red-900 border-red-400'
+                                            : 'bg-red-100 text-red-900 border-red-300')
+                                        : isInSubgraphSelection || isSelectedForOverview
+                                          ? 'bg-gray-100 text-gray-700 border-gray-300'
+                                          : 'bg-gray-50 text-gray-600 border-gray-200'
                                     }`}
                                   >
-                                    {level[0]}{func.severityCounts[level]}
+                                    {level[0]} {func.severityCounts[level]}
                                   </span>
                                 ) : null
                               )}
